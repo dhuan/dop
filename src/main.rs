@@ -18,6 +18,7 @@ struct Args {
 enum ValueType {
     Auto,
     String,
+    Number,
 }
 
 fn main() {
@@ -31,6 +32,7 @@ fn main() {
 
     let tmp_file_value = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_string = mktemp().expect("failed to create tmp file!");
+    let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
     let value: serde_json::Value =
         serde_json::from_str(stdin_buffer.as_str()).expect("Failed to parse json!!!");
@@ -38,14 +40,16 @@ fn main() {
     let json_new = traverse(&value, move |key, value| {
         let tmp_file_modified_time = get_modified_time(&tmp_file_value).unwrap();
         let tmp_file_string_modified_time = get_modified_time(&tmp_file_value_string).unwrap();
+        let tmp_file_number_modified_time = get_modified_time(&tmp_file_value_number).unwrap();
 
         let exit_ok = exec(
             args.script.as_str(),
             &vec![
                 ("KEY", key.as_str()),
-                ("VALUE", value.to_string().as_str()),
+                ("VALUE", unquote(value.to_string().as_str())),
                 ("SET_VALUE", tmp_file_value.as_str()),
                 ("SET_VALUE_STRING", tmp_file_value_string.as_str()),
+                ("SET_VALUE_NUMBER", tmp_file_value_number.as_str()),
             ],
         )
         .expect("command failed!");
@@ -61,6 +65,10 @@ fn main() {
                 .unwrap()
             {
                 (tmp_file_value_string.clone(), Some(ValueType::String))
+            } else if file_has_been_modified(&tmp_file_value_number, &tmp_file_number_modified_time)
+                .unwrap()
+            {
+                (tmp_file_value_number.clone(), Some(ValueType::Number))
             } else {
                 ("".to_string(), None)
             };
@@ -97,6 +105,10 @@ fn resolve_value(value: &str, t: ValueType) -> Value {
         return Value::from(value);
     }
 
+    if t == ValueType::Number {
+        return Value::from(value.parse::<i64>().unwrap());
+    }
+
     if value == "true" {
         return Value::from(true);
     }
@@ -116,4 +128,10 @@ fn resolve_value(value: &str, t: ValueType) -> Value {
     }
 
     Value::from(value)
+}
+
+fn unquote(s: &str) -> &str {
+    let s = s.strip_prefix(r#"""#).unwrap_or(s);
+
+    s.strip_suffix(r#"""#).unwrap_or(s)
 }

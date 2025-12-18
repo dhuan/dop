@@ -33,3 +33,22 @@ fi
 # EXPECT
 
 [1,"2",3]
+
+---
+
+# Transform into a number
+
+# INPUT
+
+["1","2","3"]
+
+# SCRIPT
+
+if [ "${KEY}" = "1" ]
+then
+    printf '%s' "${VALUE}" > ${SET_VALUE_NUMBER}
+fi
+
+# EXPECT
+
+["1",2,"3"]
