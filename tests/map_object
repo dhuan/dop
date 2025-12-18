@@ -1,0 +1,16 @@
+# Change one value
+
+# INPUT
+
+{"foo":{"bar":10,"some_key":"this will be intact"}}
+
+# SCRIPT
+
+if [ "${KEY}" = "foo.bar" ]
+then
+    printf "%s * 2\n" "${VALUE}" | bc  > $SET_VALUE 
+fi
+
+# EXPECT
+
+{"foo":{"bar":20,"some_key":"this will be intact"}}

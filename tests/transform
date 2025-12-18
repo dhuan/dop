@@ -1,0 +1,35 @@
+# Transform into an object
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+if [ "${KEY}" = "1" ]
+then
+    printf '{"foo":"bar"}' > $SET_VALUE 
+fi
+
+# EXPECT
+
+[1,{"foo":"bar"},3]
+
+---
+
+# Transform into a string
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+if [ "${KEY}" = "1" ]
+then
+    printf 'changed' > $SET_VALUE 
+fi
+
+# EXPECT
+
+[1,"changed",3]

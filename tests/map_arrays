@@ -1,0 +1,32 @@
+# Change all values
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+printf "%s * 2\n" "${VALUE}" | bc  > $SET_VALUE 
+
+# EXPECT
+
+[2,4,6]
+
+---
+
+# Change one value
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+if [ "${KEY}" = "1" ]
+then
+    printf "%s * 2\n" "${VALUE}" | bc > $SET_VALUE 
+fi
+
+# EXPECT
+
+[1,4,3]
