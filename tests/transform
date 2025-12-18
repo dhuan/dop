@@ -27,9 +27,9 @@ fi
 
 if [ "${KEY}" = "1" ]
 then
-    printf 'changed' > $SET_VALUE 
+    printf '%s' "${VALUE}" > ${SET_VALUE_STRING}
 fi
 
 # EXPECT
 
-[1,"changed",3]
+[1,"2",3]

@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::time::SystemTime;
 
 pub fn exec(script: &str, env: &[(&str, &str)]) -> Result<bool, std::io::Error> {
     let mut cmd = Command::new("sh");
@@ -33,4 +34,8 @@ pub fn file_has_been_modified(
     let time2 = std::fs::metadata(file_path)?.modified()?;
 
     Ok(time.cmp(&time2) != std::cmp::Ordering::Equal)
+}
+
+pub fn get_modified_time(file_path: &str) -> Result<SystemTime, std::io::Error> {
+    Ok(std::fs::metadata(file_path)?.modified()?)
 }
