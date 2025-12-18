@@ -29,9 +29,6 @@ fn main() {
         serde_json::from_str(stdin_buffer.as_str()).expect("Failed to parse json!!!");
 
     let json_new = traverse(&value, move |key, value| {
-        std::fs::write(tmp_file.clone(), to_value_for_mod(value))
-            .expect("Failed to write to file!");
-
         let tmp_file_modified_time = std::fs::metadata(tmp_file.clone())
             .unwrap()
             .modified()
@@ -71,14 +68,6 @@ fn main() {
     });
 
     println!("{json_new}");
-}
-
-fn to_value_for_mod(value: &Value) -> String {
-    if value.is_string() {
-        return value.to_string().replace(r#"""#, "");
-    }
-
-    value.to_string()
 }
 
 fn resolve_value(value: &str) -> Value {
