@@ -1,12 +1,13 @@
 use clap::Parser;
-use serde_json::Value;
 use std::io::Read;
 
 mod common;
 mod json;
+mod types;
+mod yaml;
 
 use crate::common::*;
-use crate::json::*;
+use crate::types::{DataFormat, TraverseAction, Value};
 
 #[derive(Parser, Debug)]
 #[command(version)]
@@ -30,14 +31,20 @@ fn main() {
         .read_to_string(&mut stdin_buffer)
         .expect("Failed to read stdin!!!");
 
+    let value = guess_value(stdin_buffer.as_str());
+    if let None = value {
+        println!("Failed to parse input.");
+
+        std::process::exit(1);
+    }
+
+    let (value, format) = value.unwrap();
+
     let tmp_file_value = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_string = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
-    let value: serde_json::Value =
-        serde_json::from_str(stdin_buffer.as_str()).expect("Failed to parse json!!!");
-
-    let json_new = traverse(&value, move |key, value| {
+    let json_new = value.traverse(|key, value| {
         let tmp_file_modified_time = get_modified_time(&tmp_file_value).unwrap();
         let tmp_file_string_modified_time = get_modified_time(&tmp_file_value_string).unwrap();
         let tmp_file_number_modified_time = get_modified_time(&tmp_file_value_number).unwrap();
@@ -86,52 +93,63 @@ fn main() {
             .expect("Failed to parse to string.")
             .as_str(),
             new_value_type,
+            &*format,
         );
 
-        if value_modified.is_string() {
-            value_modified = Value::from(trim_new_line(value_modified.as_str().unwrap()));
+        if let Value::String(s) = value_modified {
+            value_modified = Value::String(trim_new_line(&s).to_string());
         }
 
         TraverseAction::Change(value_modified)
     });
 
-    println!("{json_new}");
+    let json_new = (*format).to_str(&json_new).unwrap();
+
+    println!("{}", json_new);
 }
 
-fn resolve_value(value: &str, t: ValueType) -> Value {
+fn resolve_value(value: &str, t: ValueType, format: &dyn DataFormat) -> Value {
     let value = trim_new_line(value);
 
     if t == ValueType::String {
-        return Value::from(value);
+        return Value::String(value.to_string());
     }
 
     if t == ValueType::Number {
-        return Value::from(value.parse::<i64>().unwrap());
+        return Value::Number(value.parse::<i64>().unwrap());
     }
 
     if value == "true" {
-        return Value::from(true);
+        return Value::Bool(true);
     }
 
     if value == "false" {
-        return Value::from(false);
+        return Value::Bool(false);
     }
 
     if let Ok(num) = value.parse::<i64>() {
-        return Value::from(num);
+        return Value::Number(num);
     }
 
     if value.starts_with("[") || value.starts_with("{") {
-        if let Ok(value) = serde_json::from_str::<Value>(value) {
+        if let Some(value) = format.from_str(value) {
             return value;
         }
     }
 
-    Value::from(value)
+    return Value::String(value.to_string());
 }
 
-fn unquote(s: &str) -> &str {
-    let s = s.strip_prefix(r#"""#).unwrap_or(s);
+fn guess_value(stdin: &str) -> Option<(Value, Box<dyn DataFormat>)> {
+    let json_format = json::Json {};
+    if let Some(value) = json_format.from_str(stdin) {
+        return Some((value, Box::new(json_format)));
+    }
 
-    s.strip_suffix(r#"""#).unwrap_or(s)
+    let yaml_format = yaml::Yaml {};
+    if let Some(value) = yaml_format.from_str(stdin) {
+        return Some((value, Box::new(yaml_format)));
+    }
+
+    None
 }

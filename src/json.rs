@@ -1,175 +1,19 @@
-#[cfg(test)]
-use serde::{Serialize, de::DeserializeOwned};
-use serde_json::Value;
-use std::collections::VecDeque;
+use crate::types::{DataFormat, Value};
+use serde_json::Value as JsonValue;
+use std::collections::HashMap;
 
-pub enum TraverseAction {
-    Leave,
-    Remove,
-    Change(Value),
-}
+pub struct Json {}
 
-fn get_nested(value: &Value, path: Vec<&str>) -> Option<Value> {
-    let mut result = Some(value.clone());
-    for path_item in path {
-        if let None = result {
-            return None;
-        }
-
-        let value = result.clone().unwrap();
-
-        if starts_with_num(path_item) {
-            if let Some(value) = value.get(atoi(path_item).unwrap_or(0) as usize) {
-                result = Some(value.clone());
-
-                continue;
-            } else {
-                return None;
-            }
-        }
-
-        if let Some(value) = value.get(path_item) {
-            result = Some(value.clone());
-        } else {
-            return None;
-        }
+impl DataFormat for Json {
+    fn from_str(&self, s: &str) -> Option<Value> {
+        to_value(&serde_json::from_str::<JsonValue>(s).ok()?)
     }
-
-    result
-}
-
-fn starts_with_num(s: &str) -> bool {
-    match s.chars().next() {
-        None => false,
-        Some(c) => c.to_string().parse::<i32>().is_ok(),
+    fn to_str(&self, value: &Value) -> Option<String> {
+        Some(format!("{}", to_json_value(value)?))
     }
 }
 
-fn atoi(s: &str) -> Option<i32> {
-    match s.to_string().parse::<i32>() {
-        Err(_) => None,
-        Ok(num) => Some(num),
-    }
-}
-
-pub fn traverse<T>(value: &Value, f: T) -> Value
-where
-    T: Fn(String, &Value) -> TraverseAction,
-{
-    let mut value = value.clone();
-    let mut visit: VecDeque<String> = VecDeque::new();
-    for key in get_keys(&value).unwrap_or(vec![]) {
-        visit.push_back(key);
-    }
-
-    while let Some(path) = visit.pop_front() {
-        let path = path.split(".").collect::<Vec<&str>>();
-
-        let value_current = get_nested(&value, path.clone());
-
-        if let None = value_current {
-            continue;
-        }
-
-        let value_current = value_current.unwrap();
-
-        match f(path.join("."), &value_current) {
-            TraverseAction::Change(value_changed) => {
-                if let Some(value_ptr) = value.pointer_mut(serde_path(&path).as_str()) {
-                    *value_ptr = value_changed;
-                }
-            }
-            TraverseAction::Remove => {
-                if path.len() == 1 {
-                    if value.is_array() {
-                        let value = value.as_array_mut().unwrap();
-
-                        value.remove(path[0].parse::<usize>().unwrap());
-                    }
-
-                    if value.is_object() {
-                        value.as_object_mut().unwrap().remove(path[0]);
-                    }
-                } else {
-                    let (parent_path, field_name_to_remove) = parent_json_path(&path);
-
-                    let parent_path: Vec<&str> = parent_path.iter().map(|s| s.as_str()).collect();
-
-                    let value_mut = value
-                        .pointer_mut(serde_path(&parent_path).as_str())
-                        .unwrap();
-
-                    if value_mut.is_object() {
-                        value_mut
-                            .as_object_mut()
-                            .unwrap()
-                            .remove(field_name_to_remove.as_str())
-                            .unwrap();
-                    }
-                }
-            }
-            TraverseAction::Leave => {}
-        }
-
-        let keys = get_keys(&value_current);
-        if let Some(keys) = keys {
-            let path = path.join(".");
-            for key in keys.iter() {
-                visit.push_back(format!("{}.{}", path, key));
-            }
-        }
-    }
-
-    value
-}
-
-fn serde_path(path: &[&str]) -> String {
-    format!("/{}", path.join("/"))
-}
-
-fn get_keys(value: &Value) -> Option<Vec<String>> {
-    if value.is_object() {
-        return Some(
-            value
-                .as_object()
-                .unwrap()
-                .iter()
-                .map(|(key, _)| key.clone())
-                .collect(),
-        );
-    }
-
-    if value.is_array() {
-        return Some(
-            vec![0; value.as_array().unwrap().len()]
-                .iter()
-                .enumerate()
-                .map(|(i, _)| i.to_string())
-                .collect::<Vec<String>>(),
-        );
-    }
-
-    None
-}
-
-fn parent_json_path(path: &Vec<&str>) -> (Vec<String>, String) {
-    if path.len() < 2 {
-        panic!("Failed!!!!!!!!!!!!!!!!!!!");
-    }
-
-    let new_path: Vec<String> = (&path[0..=(path.len() - 2)])
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
-
-    let last_key: Vec<String> = (&path[path.len() - 1..])
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
-
-    (new_path, last_key[0].clone())
-}
-
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -294,4 +138,67 @@ mod tests {
             TraverseAction::Leave
         }
     }
+}
+*/
+
+fn to_json_value(value: &Value) -> Option<JsonValue> {
+    match value {
+        Value::String(value) => Some(JsonValue::from(value.to_owned())),
+        Value::Number(value) => Some(JsonValue::from(*value)),
+        Value::Bool(value) => Some(JsonValue::from(*value)),
+        Value::List(list) => Some(JsonValue::Array(
+            list.iter()
+                .map(|value| to_json_value(value).unwrap())
+                .collect(),
+        )),
+        Value::Object(value) => {
+            let mut obj = serde_json::Map::new();
+
+            for (key, value) in value {
+                obj.insert(
+                    key.to_owned(),
+                    to_json_value(value).unwrap_or(JsonValue::Null),
+                );
+            }
+
+            Some(JsonValue::from(obj))
+        }
+    }
+}
+
+fn to_value(value: &JsonValue) -> Option<Value> {
+    if value.is_array() {
+        return Some(Value::List(
+            value
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| to_value(value).unwrap())
+                .collect(),
+        ));
+    }
+
+    if value.is_boolean() {
+        return Some(Value::Bool(value.as_bool().unwrap()));
+    }
+
+    if value.is_number() {
+        return Some(Value::Number(value.as_i64().unwrap()));
+    }
+
+    if value.is_string() {
+        return Some(Value::String(value.as_str().unwrap().to_owned()));
+    }
+
+    if value.is_object() {
+        let mut obj: HashMap<String, Value> = std::collections::HashMap::new();
+
+        for (key, value) in value.as_object().unwrap().iter() {
+            obj.insert(key.clone(), to_value(value).unwrap());
+        }
+
+        return Some(Value::Object(obj));
+    }
+
+    None
 }

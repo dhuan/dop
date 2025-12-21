@@ -39,3 +39,9 @@ pub fn file_has_been_modified(
 pub fn get_modified_time(file_path: &str) -> Result<SystemTime, std::io::Error> {
     Ok(std::fs::metadata(file_path)?.modified()?)
 }
+
+pub fn unquote(s: &str) -> &str {
+    let s = s.strip_prefix(r#"""#).unwrap_or(s);
+
+    s.strip_suffix(r#"""#).unwrap_or(s)
+}
