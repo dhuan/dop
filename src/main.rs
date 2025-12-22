@@ -22,6 +22,22 @@ enum ValueType {
     Number,
 }
 
+struct FormatConfig {
+    name: &'static str,
+    format: &'static dyn DataFormat,
+}
+
+const FORMATS: &[&FormatConfig] = &[
+    &FormatConfig {
+        name: "json",
+        format: &json::Json {},
+    },
+    &FormatConfig {
+        name: "yaml",
+        format: &yaml::Yaml {},
+    },
+];
+
 fn main() {
     let args = Args::parse();
 
@@ -93,7 +109,7 @@ fn main() {
             .expect("Failed to parse to string.")
             .as_str(),
             new_value_type,
-            &*format,
+            *format,
         );
 
         if let Value::String(s) = value_modified {
@@ -140,15 +156,11 @@ fn resolve_value(value: &str, t: ValueType, format: &dyn DataFormat) -> Value {
     return Value::String(value.to_string());
 }
 
-fn guess_value(stdin: &str) -> Option<(Value, Box<dyn DataFormat>)> {
-    let json_format = json::Json {};
-    if let Some(value) = json_format.from_str(stdin) {
-        return Some((value, Box::new(json_format)));
-    }
-
-    let yaml_format = yaml::Yaml {};
-    if let Some(value) = yaml_format.from_str(stdin) {
-        return Some((value, Box::new(yaml_format)));
+fn guess_value(stdin: &str) -> Option<(Value, Box<&dyn DataFormat>)> {
+    for &format in FORMATS {
+        if let Some(value) = format.format.from_str(stdin) {
+            return Some((value, Box::new(format.format)));
+        }
     }
 
     None
