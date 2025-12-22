@@ -29,10 +29,13 @@ fn to_yaml_value(value: &Value) -> Option<YamlValue> {
         Value::Object(value) => {
             let mut obj = serde_yaml::Mapping::new();
 
-            for (key, value) in value {
+            let mut keys = value.keys().collect::<Vec<&String>>();
+            keys.sort();
+
+            for key in keys {
                 obj.insert(
                     serde_yaml::Value::from(key.to_owned()),
-                    to_yaml_value(value).unwrap_or(YamlValue::Null),
+                    to_yaml_value(value.get(key).unwrap()).unwrap_or(YamlValue::Null),
                 );
             }
 
