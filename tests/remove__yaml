@@ -1,0 +1,35 @@
+# Remove one value from array
+
+# INPUT
+
+- 1
+- 2
+- 3
+
+# SCRIPT
+
+test "${KEY}" != "1"
+
+# EXPECT
+
+- 1
+- 3
+
+---
+
+# Remove one value from object
+
+# INPUT
+
+foo:
+  bar: 123
+  stay: true
+
+# SCRIPT
+
+test "${KEY}" != "foo.bar"
+
+# EXPECT
+
+foo:
+  stay: true
