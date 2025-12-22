@@ -8,7 +8,7 @@
 
 # SCRIPT
 
-printf "%s * 2\n" "${VALUE}" | bc  > $SET_VALUE 
+echo $((${VALUE} * 2)) > $SET_VALUE 
 
 # EXPECT
 
@@ -30,7 +30,7 @@ printf "%s * 2\n" "${VALUE}" | bc  > $SET_VALUE
 
 if [ "${KEY}" = "1" ]
 then
-    printf "%s * 2\n" "${VALUE}" | bc > $SET_VALUE 
+    echo $((${VALUE} * 2)) > $SET_VALUE 
 fi
 
 # EXPECT
