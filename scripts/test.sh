@@ -78,6 +78,15 @@ do
             TEST_NAME="Nameless Test"
         fi
 
+        if [ -n "${TEST_FILTER}" ] && ! printf "%s" "${TEST_NAME}" | grep -oq "${TEST_FILTER}" 2> /dev/null
+        then
+            printf "[SKIPPED] %s\n" "${TEST_NAME}"
+
+            CURRENT_BLOCK="$(($CURRENT_BLOCK + 1))"
+
+            continue
+        fi
+
         TEST_RESULT="$(./target/debug/dop "${TEST_SCRIPT}" < $TEST_INPUT)"
 
         if [ "${TEST_RESULT}" = "${TEST_EXPECT}" ]
