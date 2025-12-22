@@ -1,0 +1,20 @@
+# Change one value
+
+# INPUT
+
+foo:
+  bar: 10
+  some_key: this will be intact
+
+# SCRIPT
+
+if [ "${KEY}" = "foo.bar" ]
+then
+    echo $((${VALUE} * 2)) > $SET_VALUE 
+fi
+
+# EXPECT
+
+foo:
+  bar: 20
+  some_key: this will be intact
