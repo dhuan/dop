@@ -33,3 +33,30 @@ test "${KEY}" != "foo.bar"
 
 foo:
   stay: true
+
+---
+
+# Remove a whole object
+
+# INPUT
+
+foo:
+  bar:
+    some_object:
+      a: b
+      c: d
+      some_list:
+        - 1
+        - 2
+        - 3
+  stay: true
+
+# SCRIPT
+
+test "${KEY}" != "foo.bar.some_object"
+
+# EXPECT
+
+foo:
+  bar: {}
+  stay: true
