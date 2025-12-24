@@ -151,3 +151,22 @@ foo:
 # EXPECT
 
 hello: world
+
+---
+
+# Query and convert
+
+# OPTIONS
+
+-q foo.bar -o json
+
+# INPUT
+
+foo:
+  bar:
+    hello: world
+
+
+# EXPECT
+
+{"hello":"world"}
