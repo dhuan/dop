@@ -8,10 +8,6 @@
 
 [1,2,3]
 
-# SCRIPT
-
-echo do nothing
-
 # EXPECT
 
 - 1
