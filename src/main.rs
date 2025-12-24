@@ -13,6 +13,8 @@ use crate::types::{DataFormat, TraverseAction, Value};
 #[command(version)]
 struct Args {
     script: String,
+    #[arg(short, long)]
+    output_format: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,6 +43,10 @@ const FORMATS: &[&FormatConfig] = &[
 fn main() {
     let args = Args::parse();
 
+    let available_formats = FORMATS
+        .iter()
+        .map(|format| format.name)
+        .collect::<Vec<&str>>();
     let mut stdin_buffer = String::new();
 
     std::io::stdin()
@@ -56,11 +62,29 @@ fn main() {
 
     let (value, format) = value.unwrap();
 
+    let output_format = args
+        .output_format
+        .clone()
+        .unwrap_or(format.name.to_string());
+
+    let output_format = FORMATS
+        .into_iter()
+        .find(|&format| format.name == output_format)
+        .unwrap_or_else(|| {
+            println!(
+                "Format not supported: {}\n\nAvailable formats: {}",
+                output_format,
+                available_formats.join(",")
+            );
+
+            std::process::exit(1);
+        });
+
     let tmp_file_value = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_string = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
-    let json_new = value.traverse(|key, value| {
+    let value = value.traverse(|key, value| {
         let tmp_file_modified_time = get_modified_time(&tmp_file_value).unwrap();
         let tmp_file_string_modified_time = get_modified_time(&tmp_file_value_string).unwrap();
         let tmp_file_number_modified_time = get_modified_time(&tmp_file_value_number).unwrap();
@@ -109,7 +133,7 @@ fn main() {
             .expect("Failed to parse to string.")
             .as_str(),
             new_value_type,
-            *format,
+            format.format,
         );
 
         if let Value::String(s) = value_modified {
@@ -119,9 +143,7 @@ fn main() {
         TraverseAction::Change(value_modified)
     });
 
-    let json_new = (*format).to_str(&json_new).unwrap();
-
-    println!("{}", json_new);
+    println!("{}", output_format.format.to_str(&value).unwrap());
 }
 
 fn resolve_value(value: &str, t: ValueType, format: &dyn DataFormat) -> Value {
@@ -156,10 +178,10 @@ fn resolve_value(value: &str, t: ValueType, format: &dyn DataFormat) -> Value {
     return Value::String(value.to_string());
 }
 
-fn guess_value(stdin: &str) -> Option<(Value, Box<&dyn DataFormat>)> {
+fn guess_value(stdin: &str) -> Option<(Value, &'static FormatConfig)> {
     for &format in FORMATS {
         if let Some(value) = format.format.from_str(stdin) {
-            return Some((value, Box::new(format.format)));
+            return Some((value, format));
         }
     }
 
