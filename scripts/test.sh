@@ -70,6 +70,7 @@ do
 
         cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "INPUT" > $TEST_INPUT
         TEST_SCRIPT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "SCRIPT")"
+        TEST_OPTIONS="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "OPTIONS")"
         TEST_EXPECT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "EXPECT")"
         TEST_NAME="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_nth_section_name 0)"
 
@@ -87,7 +88,7 @@ do
             continue
         fi
 
-        TEST_RESULT="$(./target/debug/dop "${TEST_SCRIPT}" < $TEST_INPUT)"
+        TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} "${TEST_SCRIPT}" < $TEST_INPUT)"
 
         if [ "${TEST_RESULT}" = "${TEST_EXPECT}" ]
         then

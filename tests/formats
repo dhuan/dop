@@ -1,0 +1,63 @@
+# Convert from JSON to YAML: With array
+
+# OPTIONS
+
+-o yaml
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+echo do nothing
+
+# EXPECT
+
+- 1
+- 2
+- 3
+
+---
+
+# Convert from JSON to YAML: With objects and arrays
+
+# OPTIONS
+
+-o yaml
+
+# INPUT
+
+{"foo":["bar",{"hello":"world"}]}
+
+# SCRIPT
+
+echo do nothing
+
+# EXPECT
+
+foo:
+- bar
+- hello: world
+
+---
+
+# Convert from YAML to JSON
+
+# OPTIONS
+
+-o json
+
+# INPUT
+
+- 1
+- 2
+- 3
+
+# SCRIPT
+
+echo do nothing
+
+# EXPECT
+
+[1,2,3]
