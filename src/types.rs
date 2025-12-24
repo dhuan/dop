@@ -62,12 +62,13 @@ impl Value {
         }
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&self, format: &dyn DataFormat) -> String {
         match self {
             Value::String(value) => value.to_owned(),
             Value::Bool(value) => value.to_string(),
             Value::Number(value) => format!("{value}"),
-            _ => "TODO".to_string(),
+            Value::Object(value) => format.to_str(&Value::Object(value.clone())).unwrap(),
+            Value::List(value) => format.to_str(&Value::List(value.clone())).unwrap(),
         }
     }
 

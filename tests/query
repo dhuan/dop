@@ -61,3 +61,93 @@
 # EXPECT
 
 4
+
+---
+
+# Get a list: JSON
+
+# OPTIONS
+
+-q foo.bar
+
+# INPUT
+
+{
+  "foo": {
+    "bar": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+}
+
+# EXPECT
+
+[1,2,3,4]
+
+---
+
+# Get a list: YAML
+
+# OPTIONS
+
+-q foo.bar
+
+# INPUT
+
+foo:
+  bar:
+  - 1
+  - 2
+  - 3
+  - 4
+
+# EXPECT
+
+- 1
+- 2
+- 3
+- 4
+
+---
+
+# Get an object: JSON
+
+# OPTIONS
+
+-q foo.bar
+
+# INPUT
+
+{
+  "foo": {
+    "bar": {
+        "hello": "world"
+    }
+  }
+}
+
+# EXPECT
+
+{"hello":"world"}
+
+---
+
+# Get an object: YAML
+
+# OPTIONS
+
+-q foo.bar
+
+# INPUT
+
+foo:
+  bar:
+    hello: world
+
+
+# EXPECT
+
+hello: world

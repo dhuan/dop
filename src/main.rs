@@ -97,7 +97,7 @@ fn main() {
             args.script.clone().unwrap().as_str(),
             &vec![
                 ("KEY", key.as_str()),
-                ("VALUE", unquote(value.to_string().as_str())),
+                ("VALUE", unquote(value.to_string(format.format).as_str())),
                 ("SET_VALUE", tmp_file_value.as_str()),
                 ("SET_VALUE_STRING", tmp_file_value_string.as_str()),
                 ("SET_VALUE_NUMBER", tmp_file_value_number.as_str()),
@@ -149,7 +149,7 @@ fn main() {
 
     if let Some(query) = args.query {
         if let Some(value) = value.change(&query.split(".").collect::<Vec<&str>>()) {
-            println!("{}", value.to_string());
+            println!("{}", value.to_string(format.format));
         }
 
         return;
