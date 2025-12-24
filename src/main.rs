@@ -62,23 +62,21 @@ fn main() {
 
     let (value, format) = value.unwrap();
 
-    let output_format = args
-        .output_format
-        .clone()
-        .unwrap_or(format.name.to_string());
+    let output_format = match args.output_format {
+        None => format,
+        Some(output_format) => *FORMATS
+            .into_iter()
+            .find(|&format| format.name == output_format)
+            .unwrap_or_else(|| {
+                println!(
+                    "Format not supported: {}\n\nAvailable formats: {}",
+                    output_format,
+                    available_formats.join(",")
+                );
 
-    let output_format = FORMATS
-        .into_iter()
-        .find(|&format| format.name == output_format)
-        .unwrap_or_else(|| {
-            println!(
-                "Format not supported: {}\n\nAvailable formats: {}",
-                output_format,
-                available_formats.join(",")
-            );
-
-            std::process::exit(1);
-        });
+                std::process::exit(1);
+            }),
+    };
 
     let tmp_file_value = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_string = mktemp().expect("failed to create tmp file!");
