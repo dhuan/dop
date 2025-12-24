@@ -1,0 +1,63 @@
+# Query from array
+
+# OPTIONS
+
+-q 1
+
+# INPUT
+
+[1,2,3]
+
+# EXPECT
+
+2
+
+---
+
+# Query from array nested
+
+# OPTIONS
+
+-q foo.bar.3
+
+# INPUT
+
+{
+  "foo": {
+    "bar": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+}
+
+# EXPECT
+
+4
+
+---
+
+# Query from object
+
+# OPTIONS
+
+-q foo.bar.3
+
+# INPUT
+
+{
+  "foo": {
+    "bar": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+}
+
+# EXPECT
+
+4

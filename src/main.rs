@@ -14,6 +14,8 @@ use crate::types::{DataFormat, TraverseAction, Value};
 struct Args {
     script: Option<String>,
     #[arg(short, long)]
+    query: Option<String>,
+    #[arg(short, long)]
     output_format: Option<String>,
 }
 
@@ -82,7 +84,7 @@ fn main() {
     let tmp_file_value_string = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
-    let value = value.traverse(|key, value| {
+    let mut value = value.traverse(|key, value| {
         if let None = args.script {
             return TraverseAction::Leave;
         }
@@ -144,6 +146,14 @@ fn main() {
 
         TraverseAction::Change(value_modified)
     });
+
+    if let Some(query) = args.query {
+        if let Some(value) = value.change(&query.split(".").collect::<Vec<&str>>()) {
+            println!("{}", value.to_string());
+        }
+
+        return;
+    }
 
     println!("{}", output_format.format.to_str(&value).unwrap());
 }
