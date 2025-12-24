@@ -12,7 +12,7 @@ use crate::types::{DataFormat, TraverseAction, Value};
 #[derive(Parser, Debug)]
 #[command(version)]
 struct Args {
-    script: String,
+    script: Option<String>,
     #[arg(short, long)]
     output_format: Option<String>,
 }
@@ -83,12 +83,16 @@ fn main() {
     let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
     let value = value.traverse(|key, value| {
+        if let None = args.script {
+            return TraverseAction::Leave;
+        }
+
         let tmp_file_modified_time = get_modified_time(&tmp_file_value).unwrap();
         let tmp_file_string_modified_time = get_modified_time(&tmp_file_value_string).unwrap();
         let tmp_file_number_modified_time = get_modified_time(&tmp_file_value_number).unwrap();
 
         let exit_ok = exec(
-            args.script.as_str(),
+            args.script.clone().unwrap().as_str(),
             &vec![
                 ("KEY", key.as_str()),
                 ("VALUE", unquote(value.to_string().as_str())),
