@@ -1,0 +1,21 @@
+# filtering by keys
+
+# INPUT
+
+{
+  "data": {
+    "another_list": [ 1, 2, 3 ],
+    "some_list": [ 1, 2, 3 ]
+  }
+}
+
+# SCRIPT
+
+if dop key-match '^data\.some_list\.\d+$'
+then
+    echo $((${VALUE} * 2)) > $SET_VALUE 
+fi
+
+# EXPECT
+
+{"data":{"another_list":[1,2,3],"some_list":[2,4,6]}}

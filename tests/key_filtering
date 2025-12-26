@@ -1,0 +1,22 @@
+# Key filtering with "-k"
+
+# OPTIONS
+
+-k ^some_data.list_a.[0-9]{1,}$
+
+# SCRIPT
+
+echo $((${VALUE} * 2)) > $SET_VALUE
+
+# INPUT
+
+{
+  "some_data": {
+    "list_a": [ 1, 2, 3 ],
+    "list_b": [ 1, 2, 3 ]
+  }
+}
+
+# EXPECT
+
+{"some_data":{"list_a":[2,4,6],"list_b":[1,2,3]}}

@@ -1,20 +1,36 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::io::Read;
 
 mod common;
 mod json;
+mod script_lib;
 mod types;
 mod yaml;
 
 use crate::common::*;
-use crate::types::{DataFormat, TraverseAction, Value};
+use crate::types::*;
 
-#[derive(Parser, Debug)]
-#[command(version)]
+#[derive(Parser)]
+struct Cli {
+    #[command(subcommand)]
+    commands: Option<Commands>,
+
+    #[command(flatten)]
+    args: Args,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    KeyMatch { search: String },
+}
+
+#[derive(Clone, clap::Args, Debug)]
 struct Args {
     script: Option<String>,
     #[arg(short, long)]
     query: Option<String>,
+    #[arg(short, long)]
+    key_filter_regex: Option<String>,
     #[arg(short, long)]
     output_format: Option<String>,
 }
@@ -43,7 +59,34 @@ const FORMATS: &[&FormatConfig] = &[
 ];
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
+
+    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&String>)> = match &cli.commands {
+        Some(Commands::KeyMatch { search }) => {
+            Some((Box::new(script_lib::key_match), Some(search)))
+        }
+        None => None,
+    };
+    if let Some((f, param)) = script_lib_fn {
+        match script_lib::parse_script_env() {
+            None => {
+                println!("Failed to parse script env!");
+            }
+            Some(env) => {
+                let (result, ok) = f(&env, param);
+
+                if let Some(result) = result {
+                    println!("{result}");
+                }
+
+                if !ok {
+                    std::process::exit(1);
+                }
+            }
+        }
+
+        return;
+    }
 
     let available_formats = FORMATS
         .iter()
@@ -64,7 +107,7 @@ fn main() {
 
     let (value, format) = value.unwrap();
 
-    let output_format = match args.output_format {
+    let output_format = match cli.args.output_format {
         None => format,
         Some(output_format) => *FORMATS
             .into_iter()
@@ -85,8 +128,14 @@ fn main() {
     let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
     let mut value = value.traverse(|key, value| {
-        if let None = args.script {
+        if let None = cli.args.script {
             return TraverseAction::Leave;
+        }
+
+        if let Some(key_filter_regex) = cli.args.key_filter_regex.clone() {
+            if !regex_test(&key_filter_regex, &key) {
+                return TraverseAction::Leave;
+            }
         }
 
         let tmp_file_modified_time = get_modified_time(&tmp_file_value).unwrap();
@@ -94,7 +143,7 @@ fn main() {
         let tmp_file_number_modified_time = get_modified_time(&tmp_file_value_number).unwrap();
 
         let exit_ok = exec(
-            args.script.clone().unwrap().as_str(),
+            cli.args.script.clone().unwrap().as_str(),
             &vec![
                 ("KEY", key.as_str()),
                 (
@@ -150,7 +199,7 @@ fn main() {
         TraverseAction::Change(value_modified)
     });
 
-    if let Some(query) = args.query {
+    if let Some(query) = cli.args.query {
         if let Some(value) = value.change(&query.split(".").collect::<Vec<&str>>()) {
             println!("{}", value.to_string(output_format.format));
         }

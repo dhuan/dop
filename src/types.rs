@@ -150,3 +150,10 @@ pub trait DataFormat {
     fn from_str(&self, s: &str) -> Option<Value>;
     fn to_str(&self, value: &Value) -> Option<String>;
 }
+
+pub struct ScriptEnv {
+    pub value: String,
+    pub key: String,
+}
+
+pub type ScriptLibFn = dyn Fn(&ScriptEnv, Option<&String>) -> (Option<String>, bool);
