@@ -8,12 +8,12 @@
 
 # SCRIPT
 
-test "${KEY}" != "1"
+test "${KEY}" != "2"
 
 # EXPECT
 
 - 1
-- 3
+- 2
 
 ---
 

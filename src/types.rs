@@ -82,10 +82,10 @@ impl Value {
             visit.push_back(key);
         }
 
-        while let Some(path) = visit.pop_front() {
-            let path = path.split(".").collect::<Vec<&str>>();
+        while let Some(path_base) = visit.pop_front() {
+            let path = path_base.split(".").collect::<Vec<&str>>();
 
-            let value_current = get_nested(&mut value, path.clone());
+            let value_current = get_nested(&mut value, &path);
 
             if let None = value_current {
                 continue;
@@ -100,6 +100,14 @@ impl Value {
                     }
                 }
                 TraverseAction::Remove => {
+                    if let Some(Value::List(list)) =
+                        get_nested(&mut value, &path[0..(path.len() - 1)])
+                    {
+                        if path.last().unwrap().parse::<usize>().unwrap() != (list.len() - 1) {
+                            visit.push_front(path_base.clone());
+                        }
+                    }
+
                     value.remove(&path);
                 }
                 TraverseAction::Leave => {}
@@ -142,7 +150,7 @@ fn get_keys(value: &Value) -> Option<Vec<String>> {
     None
 }
 
-fn get_nested(value: &mut Value, path: Vec<&str>) -> Option<Value> {
+fn get_nested(value: &mut Value, path: &[&str]) -> Option<Value> {
     Some(value.change(&path)?.to_owned())
 }
 

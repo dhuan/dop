@@ -1,4 +1,4 @@
-# Key filtering with "-k"
+# Key filtering with "-k": Modify values
 
 # OPTIONS
 
@@ -20,3 +20,27 @@ echo $((${VALUE} * 2)) > $SET_VALUE
 # EXPECT
 
 {"some_data":{"list_a":[2,4,6],"list_b":[1,2,3]}}
+
+---
+
+# Key filtering with "-k": Remove all items from array
+
+# OPTIONS
+
+-k data.some_list.\d+
+
+# SCRIPT
+
+exit 1
+
+# INPUT
+
+{
+  "data": {
+    "some_list": [ 1, 2, 3 ]
+  }
+}
+
+# EXPECT
+
+{"data":{"some_list":[]}}
