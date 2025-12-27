@@ -1,0 +1,20 @@
+# is it an object?
+
+# OPTIONS
+
+-k data\..*
+
+# INPUT
+
+{"data":["7",7,false,{"foo":"bar"},[]]}
+
+# SCRIPT
+
+if dop is-object
+then
+    echo true > $SET_VALUE
+fi
+
+# EXPECT
+
+{"data":["7",7,false,true,[]]}

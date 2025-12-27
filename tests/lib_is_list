@@ -1,0 +1,16 @@
+# is it a list?
+
+# INPUT
+
+{"data":[1,2,3]}
+
+# SCRIPT
+
+if dop is-list
+then
+    echo true > $SET_VALUE
+fi
+
+# EXPECT
+
+{"data":true}

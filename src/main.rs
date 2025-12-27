@@ -25,6 +25,8 @@ enum Commands {
     IsString,
     IsNumber,
     IsBool,
+    IsList,
+    IsObject,
 }
 
 #[derive(Clone, clap::Args, Debug)]
@@ -71,6 +73,8 @@ fn main() {
         Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
         Some(Commands::IsNumber) => Some((Box::new(script_lib::is_number), None)),
         Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
+        Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
+        Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
         None => None,
     };
     if let Some((f, param)) = script_lib_fn {
