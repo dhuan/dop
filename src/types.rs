@@ -72,6 +72,17 @@ impl Value {
         }
     }
 
+    pub fn type_encoded(&self) -> String {
+        (match *self {
+            Value::String(_) => "string",
+            Value::Number(_) => "number",
+            Value::Bool(_) => "bool",
+            Value::Object(_) => "object",
+            Value::List(_) => "list",
+        })
+        .to_string()
+    }
+
     pub fn traverse<T>(&self, f: T) -> Value
     where
         T: Fn(String, &Value) -> TraverseAction,
@@ -161,6 +172,7 @@ pub trait DataFormat {
 
 pub struct ScriptEnv {
     pub value: String,
+    pub value_type: String,
     pub key: String,
 }
 

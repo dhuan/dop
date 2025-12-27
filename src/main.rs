@@ -22,6 +22,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     KeyMatch { search: String },
+    IsString,
 }
 
 #[derive(Clone, clap::Args, Debug)]
@@ -65,6 +66,7 @@ fn main() {
         Some(Commands::KeyMatch { search }) => {
             Some((Box::new(script_lib::key_match), Some(search)))
         }
+        Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
         None => None,
     };
     if let Some((f, param)) = script_lib_fn {
@@ -150,6 +152,7 @@ fn main() {
                     "VALUE",
                     unquote(value.to_string(output_format.format).as_str()),
                 ),
+                ("VALUE_TYPE", &value.type_encoded()),
                 ("SET_VALUE", tmp_file_value.as_str()),
                 ("SET_VALUE_STRING", tmp_file_value_string.as_str()),
                 ("SET_VALUE_NUMBER", tmp_file_value_number.as_str()),
