@@ -17,6 +17,10 @@ pub fn is_number(env: &ScriptEnv, _: Option<&String>) -> (Option<String>, bool) 
     (None, env.value_type == "number")
 }
 
+pub fn is_bool(env: &ScriptEnv, _: Option<&String>) -> (Option<String>, bool) {
+    (None, env.value_type == "bool")
+}
+
 pub fn parse_script_env() -> Option<ScriptEnv> {
     let value = std::env::var("VALUE").ok()?;
     let value_type = std::env::var("VALUE_TYPE").ok()?;

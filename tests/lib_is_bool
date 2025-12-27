@@ -1,0 +1,16 @@
+# is it a boolean?
+
+# INPUT
+
+{"list":["7",7,false,{"foo":"bar"},[]]}
+
+# SCRIPT
+
+if dop is-bool
+then
+    echo true > $SET_VALUE
+fi
+
+# EXPECT
+
+{"list":["7",7,true,{"foo":"bar"},[]]}
