@@ -23,6 +23,7 @@ struct Cli {
 enum Commands {
     KeyMatch { search: String },
     IsString,
+    IsNumber,
 }
 
 #[derive(Clone, clap::Args, Debug)]
@@ -67,6 +68,7 @@ fn main() {
             Some((Box::new(script_lib::key_match), Some(search)))
         }
         Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
+        Some(Commands::IsNumber) => Some((Box::new(script_lib::is_number), None)),
         None => None,
     };
     if let Some((f, param)) = script_lib_fn {

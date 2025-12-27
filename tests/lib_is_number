@@ -1,0 +1,17 @@
+# is it a number?
+
+# INPUT
+
+{"list":["7",7,{"foo":"bar"},[]]}
+
+# SCRIPT
+
+if dop is-number
+then
+    echo true > $SET_VALUE
+fi
+
+# EXPECT
+
+{"list":["7",true,{"foo":"bar"},[]]}
+
