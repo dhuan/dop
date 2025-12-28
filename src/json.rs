@@ -8,7 +8,11 @@ impl DataFormat for Json {
     fn from_str(&self, s: &str) -> Option<Value> {
         to_value(&serde_json::from_str::<JsonValue>(s).ok()?)
     }
-    fn to_str(&self, value: &Value) -> Option<String> {
+    fn to_str(&self, value: &Value, pretty: bool) -> Option<String> {
+        if pretty {
+            return serde_json::to_string_pretty(&to_json_value(value)?).ok();
+        }
+
         Some(format!("{}", to_json_value(value)?))
     }
 }

@@ -8,7 +8,7 @@ impl DataFormat for Yaml {
     fn from_str(&self, s: &str) -> Option<Value> {
         to_value(&serde_yaml::from_str::<YamlValue>(s).ok()?)
     }
-    fn to_str(&self, value: &Value) -> Option<String> {
+    fn to_str(&self, value: &Value, _: bool) -> Option<String> {
         Some(format!(
             "{}",
             serde_yaml::to_string(&to_yaml_value(value)?).ok()?

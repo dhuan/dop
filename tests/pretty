@@ -1,0 +1,51 @@
+# Pretty print: With -P Flag
+
+# OPTIONS
+
+-P
+
+# INPUT
+
+{"data":{"list":[1,2,3],"object":{"foo":"bar"}}}
+
+# EXPECT
+
+{
+  "data": {
+    "list": [
+      1,
+      2,
+      3
+    ],
+    "object": {
+      "foo": "bar"
+    }
+  }
+}
+
+---
+
+# Pretty print: With --pretty Flag
+
+# OPTIONS
+
+--pretty
+
+# INPUT
+
+{"data":{"list":[1,2,3],"object":{"foo":"bar"}}}
+
+# EXPECT
+
+{
+  "data": {
+    "list": [
+      1,
+      2,
+      3
+    ],
+    "object": {
+      "foo": "bar"
+    }
+  }
+}

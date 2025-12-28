@@ -38,6 +38,8 @@ struct Args {
     key_filter_regex: Option<String>,
     #[arg(short, long)]
     output_format: Option<String>,
+    #[arg(short = 'P', long)]
+    pretty: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -158,7 +160,7 @@ fn main() {
                 ("KEY", key.as_str()),
                 (
                     "VALUE",
-                    unquote(value.to_string(output_format.format).as_str()),
+                    unquote(value.to_string(output_format.format, false).as_str()),
                 ),
                 ("VALUE_TYPE", &value.type_encoded()),
                 ("SET_VALUE", tmp_file_value.as_str()),
@@ -216,13 +218,19 @@ fn main() {
 
     if let Some(query) = cli.args.query {
         if let Some(value) = value.change(&query.split(".").collect::<Vec<&str>>()) {
-            println!("{}", value.to_string(output_format.format));
+            println!("{}", value.to_string(output_format.format, cli.args.pretty));
         }
 
         return;
     }
 
-    println!("{}", output_format.format.to_str(&value).unwrap());
+    println!(
+        "{}",
+        output_format
+            .format
+            .to_str(&value, cli.args.pretty)
+            .unwrap()
+    );
 }
 
 fn resolve_value(value: &str, t: ValueType, format: &dyn DataFormat) -> Value {

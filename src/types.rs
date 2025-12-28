@@ -62,13 +62,15 @@ impl Value {
         }
     }
 
-    pub fn to_string(&self, format: &dyn DataFormat) -> String {
+    pub fn to_string(&self, format: &dyn DataFormat, pretty: bool) -> String {
         match self {
             Value::String(value) => value.to_owned(),
             Value::Bool(value) => value.to_string(),
             Value::Number(value) => format!("{value}"),
-            Value::Object(value) => format.to_str(&Value::Object(value.clone())).unwrap(),
-            Value::List(value) => format.to_str(&Value::List(value.clone())).unwrap(),
+            Value::Object(value) => format
+                .to_str(&Value::Object(value.clone()), pretty)
+                .unwrap(),
+            Value::List(value) => format.to_str(&Value::List(value.clone()), pretty).unwrap(),
         }
     }
 
@@ -167,7 +169,7 @@ fn get_nested(value: &mut Value, path: &[&str]) -> Option<Value> {
 
 pub trait DataFormat {
     fn from_str(&self, s: &str) -> Option<Value>;
-    fn to_str(&self, value: &Value) -> Option<String>;
+    fn to_str(&self, value: &Value, pretty: bool) -> Option<String>;
 }
 
 pub struct ScriptEnv {
