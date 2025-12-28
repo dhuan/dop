@@ -34,7 +34,7 @@ struct Args {
     script: Option<String>,
     #[arg(short, long)]
     query: Option<String>,
-    #[arg(short, long)]
+    #[arg(short, long = "key-filter")]
     key_filter_regex: Option<String>,
     #[arg(short, long)]
     output_format: Option<String>,
