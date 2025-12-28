@@ -4,6 +4,7 @@ use std::io::Read;
 mod common;
 mod json;
 mod script_lib;
+mod toml;
 mod types;
 mod yaml;
 
@@ -64,6 +65,10 @@ const FORMATS: &[&FormatConfig] = &[
     &FormatConfig {
         name: "yaml",
         format: &yaml::Yaml {},
+    },
+    &FormatConfig {
+        name: "toml",
+        format: &toml::Toml {},
     },
 ];
 
