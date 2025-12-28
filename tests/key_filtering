@@ -27,7 +27,7 @@ echo $((${VALUE} * 2)) > $SET_VALUE
 
 # OPTIONS
 
--k data.some_list.\d+
+--key-filter data.some_list.\d+
 
 # SCRIPT
 
@@ -44,3 +44,27 @@ exit 1
 # EXPECT
 
 {"data":{"some_list":[]}}
+
+---
+
+# Key filtering with "-K": Matching exact
+
+# OPTIONS
+
+-K data.some_list.1
+
+# SCRIPT
+
+echo $((${VALUE} * 2)) > $SET_VALUE 
+
+# INPUT
+
+{
+  "data": {
+    "some_list": [ 1, 2, 3 ]
+  }
+}
+
+# EXPECT
+
+{"data":{"some_list":[1,4,3]}}

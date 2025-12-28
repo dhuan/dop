@@ -36,6 +36,8 @@ struct Args {
     query: Option<String>,
     #[arg(short, long = "key-filter")]
     key_filter_regex: Option<String>,
+    #[arg(short = 'K', long = "key-equal")]
+    key_filter_equal: Option<String>,
     #[arg(short, long)]
     output_format: Option<String>,
     #[arg(short = 'P', long)]
@@ -146,6 +148,12 @@ fn main() {
 
         if let Some(key_filter_regex) = cli.args.key_filter_regex.clone() {
             if !regex_test(&key_filter_regex, &key) {
+                return TraverseAction::Leave;
+            }
+        }
+
+        if let Some(key_filter_equal) = cli.args.key_filter_equal.clone() {
+            if key_filter_equal != key {
                 return TraverseAction::Leave;
             }
         }
