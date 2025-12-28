@@ -1,0 +1,22 @@
+# Print the field's name
+
+# OPTIONS
+
+-k data\.
+
+# INPUT
+
+{
+  "data": {
+    "one": "????",
+    "two": "????"
+  }
+}
+
+# SCRIPT
+
+echo $FIELD_NAME > $SET_VALUE
+
+# EXPECT
+
+{"data":{"one":"one","two":"two"}}

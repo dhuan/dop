@@ -164,6 +164,10 @@ fn main() {
                 ("SET_VALUE", tmp_file_value.as_str()),
                 ("SET_VALUE_STRING", tmp_file_value_string.as_str()),
                 ("SET_VALUE_NUMBER", tmp_file_value_number.as_str()),
+                (
+                    "FIELD_NAME",
+                    field_name(&key).unwrap_or("".to_string()).as_str(),
+                ),
             ],
         )
         .expect("command failed!");
@@ -261,4 +265,8 @@ fn guess_value(stdin: &str) -> Option<(Value, &'static FormatConfig)> {
     }
 
     None
+}
+
+fn field_name(path: &str) -> Option<String> {
+    Some(path.split(".").last().unwrap_or("").to_string())
 }
