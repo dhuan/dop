@@ -41,6 +41,8 @@ struct Args {
     key_filter_equal: Option<String>,
     #[arg(short, long)]
     output_format: Option<String>,
+    #[arg(short, long)]
+    input_format: Option<String>,
     #[arg(short = 'P', long)]
     pretty: bool,
 }
@@ -117,7 +119,21 @@ fn main() {
         .read_to_string(&mut stdin_buffer)
         .expect("Failed to read stdin!!!");
 
-    let value = guess_value(stdin_buffer.as_str());
+    let value = match cli.args.input_format {
+        None => guess_value(stdin_buffer.as_str()),
+        Some(input_format) => match FORMATS.iter().find(|&format| format.name == input_format) {
+            None => {
+                println!("Invalid format!");
+
+                std::process::exit(1);
+            }
+            Some(&format) => match format.format.from_str(stdin_buffer.as_str()) {
+                None => None,
+                Some(value) => Some((value, format)),
+            },
+        },
+    };
+
     if let None = value {
         println!("Failed to parse input.");
 
