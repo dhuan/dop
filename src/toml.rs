@@ -9,7 +9,7 @@ impl DataFormat for Toml {
         to_value(&toml::from_str(s).ok()?)
     }
     fn to_str(&self, value: &Value, _: bool) -> Option<String> {
-        Some(format!("{}", to_toml_value(value)?))
+        Some(toml::to_string(&to_toml_value(value).unwrap()).ok()?)
     }
 }
 
