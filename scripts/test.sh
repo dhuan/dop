@@ -21,7 +21,7 @@ BEGIN {
         print $0;
     }
 }
-' | grep '.'
+' | sed '/./,$!d' | sed ':a;/^\n*$/{$d;N;ba}'
 }
 
 get_block () {

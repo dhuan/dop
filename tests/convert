@@ -49,3 +49,35 @@ foo:
 # EXPECT
 
 [1,2,3]
+
+---
+
+# Convert from JSON to TOML
+
+# OPTIONS
+
+-o toml
+
+# INPUT
+
+{
+  "some_obj": {
+    "foo": "bar"
+  },
+  "some_number": 123,
+  "some_list": [
+    1,
+    2,
+    3
+  ],
+  "some_bool": true
+}
+
+# EXPECT
+
+some_bool = true
+some_list = [1, 2, 3]
+some_number = 123
+
+[some_obj]
+foo = "bar"
