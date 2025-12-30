@@ -173,9 +173,9 @@ pub trait DataFormat {
 }
 
 pub struct ScriptEnv {
-    pub value: String,
     pub value_type: String,
+    pub file_set_value: String,
     pub key: String,
 }
 
-pub type ScriptLibFn = dyn Fn(&ScriptEnv, Option<&String>) -> (Option<String>, bool);
+pub type ScriptLibFn = dyn Fn(&ScriptEnv, Option<&[&str]>) -> (Option<String>, bool);

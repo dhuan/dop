@@ -22,6 +22,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    Set { args: Vec<String> },
     KeyMatch { search: String },
     IsString,
     IsNumber,
@@ -77,15 +78,19 @@ const FORMATS: &[&FormatConfig] = &[
 fn main() {
     let cli = Cli::parse();
 
-    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&String>)> = match &cli.commands {
+    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&[&str]>)> = match &cli.commands {
         Some(Commands::KeyMatch { search }) => {
-            Some((Box::new(script_lib::key_match), Some(search)))
+            Some((Box::new(script_lib::key_match), Some(&[search])))
         }
         Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
         Some(Commands::IsNumber) => Some((Box::new(script_lib::is_number), None)),
         Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
         Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
         Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
+        Some(Commands::Set { args }) => Some((
+            Box::new(script_lib::set),
+            Some(&args.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
+        )),
         None => None,
     };
     if let Some((f, param)) = script_lib_fn {
