@@ -1,0 +1,112 @@
+# set: array
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set $((${VALUE} * 2))
+
+# EXPECT
+
+[2,4,6]
+
+---
+
+# set: object
+
+# INPUT
+
+{"data":{"foo":"bar"}}
+
+# SCRIPT
+
+if dop is-string
+then
+    dop set BAR
+fi
+
+# EXPECT
+
+{"data":{"foo":"BAR"}}
+
+---
+
+# set: with --string
+
+# OPTIONS
+
+-K 1
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set --string 2
+
+# EXPECT
+
+[1,"2",3]
+
+---
+
+# set: replace with an object
+
+# OPTIONS
+
+-K 1
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set '{"foo":"bar"}'
+
+# EXPECT
+
+[1,{"foo":"bar"},3]
+
+---
+
+# set: replace with a list
+
+# OPTIONS
+
+-K 1
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set '[50,70]'
+
+# EXPECT
+
+[1,[50,70],3]
+
+---
+
+# set: replace with a boolean
+
+# OPTIONS
+
+-K 1
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set false
+
+# EXPECT
+
+[1,false,3]

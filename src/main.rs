@@ -22,13 +22,20 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Set { args: Vec<String> },
+    Set(SetArgs),
     KeyMatch { search: String },
     IsString,
     IsNumber,
     IsBool,
     IsList,
     IsObject,
+}
+
+#[derive(Clone, clap::Args)]
+struct SetArgs {
+    value: String,
+    #[arg(short = 's', long = "string")]
+    convert_to_string: bool,
 }
 
 #[derive(Clone, clap::Args, Debug)]
@@ -46,13 +53,6 @@ struct Args {
     input_format: Option<String>,
     #[arg(short = 'P', long)]
     pretty: bool,
-}
-
-#[derive(Debug, PartialEq)]
-enum ValueType {
-    Auto,
-    String,
-    Number,
 }
 
 struct FormatConfig {
@@ -87,9 +87,12 @@ fn main() {
         Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
         Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
         Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
-        Some(Commands::Set { args }) => Some((
-            Box::new(script_lib::set),
-            Some(&args.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
+        Some(Commands::Set(args)) => Some((
+            Box::new(script_lib::set(match args.convert_to_string {
+                false => ValueType::Auto,
+                true => ValueType::String,
+            })),
+            Some(&vec![args.value.as_str()]),
         )),
         None => None,
     };

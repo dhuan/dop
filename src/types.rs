@@ -175,7 +175,15 @@ pub trait DataFormat {
 pub struct ScriptEnv {
     pub value_type: String,
     pub file_set_value: String,
+    pub file_set_value_string: String,
     pub key: String,
 }
 
 pub type ScriptLibFn = dyn Fn(&ScriptEnv, Option<&[&str]>) -> (Option<String>, bool);
+
+#[derive(Debug, PartialEq)]
+pub enum ValueType {
+    Auto,
+    String,
+    Number,
+}
