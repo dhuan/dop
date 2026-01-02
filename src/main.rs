@@ -243,7 +243,7 @@ fn main() {
             } else if file_has_been_modified(&tmp_file_value_number, &tmp_file_number_modified_time)
                 .unwrap()
             {
-                (tmp_file_value_number.clone(), Some(ValueType::Number))
+                (tmp_file_value_number.clone(), Some(ValueType::Int))
             } else {
                 ("".to_string(), None)
             };
@@ -308,8 +308,16 @@ fn resolve_value(value: &str, t: &ValueType, format: &dyn DataFormat) -> Value {
         return Value::String(value.to_string());
     }
 
-    if *t == ValueType::Number {
-        return Value::Number(value.parse::<i64>().unwrap());
+    if *t == ValueType::Int {
+        return Value::Int(value.parse::<i64>().unwrap());
+    }
+
+    if *t == ValueType::Float {
+        return Value::Float(value.parse::<f64>().unwrap());
+    }
+
+    if *t == ValueType::String {
+        return Value::Int(value.parse::<i64>().unwrap());
     }
 
     if value == "true" {
@@ -321,7 +329,7 @@ fn resolve_value(value: &str, t: &ValueType, format: &dyn DataFormat) -> Value {
     }
 
     if let Ok(num) = value.parse::<i64>() {
-        return Value::Number(num);
+        return Value::Int(num);
     }
 
     if value.starts_with("[") || value.starts_with("{") {

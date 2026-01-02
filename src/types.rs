@@ -3,7 +3,8 @@ use std::collections::{HashMap, VecDeque};
 #[derive(Debug, Clone)]
 pub enum Value {
     String(String),
-    Number(i64),
+    Int(i64),
+    Float(f64),
     Bool(bool),
     List(Vec<Value>),
     Object(HashMap<String, Value>),
@@ -67,7 +68,8 @@ impl Value {
         match self {
             Value::String(value) => value.to_owned(),
             Value::Bool(value) => value.to_string(),
-            Value::Number(value) => format!("{value}"),
+            Value::Int(value) => format!("{value}"),
+            Value::Float(value) => format!("{value}"),
             Value::Object(value) => format
                 .to_str(&Value::Object(value.clone()), pretty)
                 .unwrap(),
@@ -79,7 +81,8 @@ impl Value {
     pub fn type_encoded(&self) -> String {
         (match *self {
             Value::String(_) => "string",
-            Value::Number(_) => "number",
+            Value::Int(_) => "int",
+            Value::Float(_) => "float",
             Value::Bool(_) => "bool",
             Value::Object(_) => "object",
             Value::List(_) => "list",
@@ -188,14 +191,16 @@ pub type ScriptLibFn = dyn Fn(&ScriptEnv, Option<&[&str]>) -> (Option<String>, b
 pub enum ValueType {
     Auto,
     String,
-    Number,
+    Int,
+    Float,
 }
 
 impl ValueType {
     pub fn to_string(&self) -> &str {
         match self {
             ValueType::String => "string",
-            ValueType::Number => "number",
+            ValueType::Int => "int",
+            ValueType::Float => "float",
             ValueType::Auto => "auto",
         }
     }

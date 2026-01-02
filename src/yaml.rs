@@ -19,7 +19,8 @@ impl DataFormat for Yaml {
 fn to_yaml_value(value: &Value) -> Option<YamlValue> {
     match value {
         Value::String(value) => Some(YamlValue::from(value.to_owned())),
-        Value::Number(value) => Some(YamlValue::from(*value)),
+        Value::Int(value) => Some(YamlValue::from(*value)),
+        Value::Float(value) => Some(YamlValue::from(*value)),
         Value::Bool(value) => Some(YamlValue::from(*value)),
         Value::List(list) => Some(YamlValue::Sequence(
             list.iter()
@@ -62,7 +63,15 @@ fn to_value(value: &YamlValue) -> Option<Value> {
     }
 
     if value.is_number() {
-        return Some(Value::Number(value.as_i64().unwrap()));
+        if let Some(num) = value.as_i64() {
+            return Some(Value::Int(num));
+        }
+
+        if let Some(num) = value.as_f64() {
+            return Some(Value::Float(num));
+        }
+
+        return None;
     }
 
     if value.is_string() {

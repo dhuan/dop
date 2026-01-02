@@ -20,7 +20,8 @@ impl DataFormat for Json {
 fn to_json_value(value: &Value) -> Option<JsonValue> {
     match value {
         Value::String(value) => Some(JsonValue::from(value.to_owned())),
-        Value::Number(value) => Some(JsonValue::from(*value)),
+        Value::Int(value) => Some(JsonValue::from(*value)),
+        Value::Float(value) => Some(JsonValue::from(*value)),
         Value::Bool(value) => Some(JsonValue::from(*value)),
         Value::Null => Some(JsonValue::Null),
         Value::List(list) => Some(JsonValue::Array(
@@ -60,7 +61,15 @@ fn to_value(value: &JsonValue) -> Option<Value> {
     }
 
     if value.is_number() {
-        return Some(Value::Number(value.as_i64().unwrap()));
+        if let Some(num) = value.as_i64() {
+            return Some(Value::Int(num));
+        }
+
+        if let Some(num) = value.as_f64() {
+            return Some(Value::Float(num));
+        }
+
+        return None;
     }
 
     if value.is_string() {

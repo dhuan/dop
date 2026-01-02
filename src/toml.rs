@@ -30,7 +30,11 @@ fn to_value(value: &TomlValue) -> Option<Value> {
     }
 
     if value.is_integer() {
-        return Some(Value::Number(value.as_integer().unwrap()));
+        return Some(Value::Int(value.as_integer().unwrap()));
+    }
+
+    if value.is_float() {
+        return Some(Value::Float(value.as_float().unwrap()));
     }
 
     if value.is_str() {
@@ -53,7 +57,8 @@ fn to_value(value: &TomlValue) -> Option<Value> {
 fn to_toml_value(value: &Value) -> Option<TomlValue> {
     match value {
         Value::String(value) => Some(TomlValue::from(value.to_owned())),
-        Value::Number(value) => Some(TomlValue::from(*value)),
+        Value::Int(value) => Some(TomlValue::from(*value)),
+        Value::Float(value) => Some(TomlValue::from(*value)),
         Value::Bool(value) => Some(TomlValue::from(*value)),
         Value::List(list) => Some(TomlValue::Array(
             list.iter()
