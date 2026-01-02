@@ -22,6 +22,7 @@ fn to_json_value(value: &Value) -> Option<JsonValue> {
         Value::String(value) => Some(JsonValue::from(value.to_owned())),
         Value::Number(value) => Some(JsonValue::from(*value)),
         Value::Bool(value) => Some(JsonValue::from(*value)),
+        Value::Null => Some(JsonValue::Null),
         Value::List(list) => Some(JsonValue::Array(
             list.iter()
                 .map(|value| to_json_value(value).unwrap())
@@ -64,6 +65,10 @@ fn to_value(value: &JsonValue) -> Option<Value> {
 
     if value.is_string() {
         return Some(Value::String(value.as_str().unwrap().to_owned()));
+    }
+
+    if value.is_null() {
+        return Some(Value::Null);
     }
 
     if value.is_object() {

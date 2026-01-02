@@ -72,5 +72,6 @@ fn to_toml_value(value: &Value) -> Option<TomlValue> {
 
             Some(TomlValue::from(obj))
         }
+        Value::Null => Some(TomlValue::String("null".to_string())),
     }
 }

@@ -7,6 +7,7 @@ pub enum Value {
     Bool(bool),
     List(Vec<Value>),
     Object(HashMap<String, Value>),
+    Null,
 }
 
 impl Value {
@@ -71,6 +72,7 @@ impl Value {
                 .to_str(&Value::Object(value.clone()), pretty)
                 .unwrap(),
             Value::List(value) => format.to_str(&Value::List(value.clone()), pretty).unwrap(),
+            Value::Null => "null".to_string(),
         }
     }
 
@@ -81,6 +83,7 @@ impl Value {
             Value::Bool(_) => "bool",
             Value::Object(_) => "object",
             Value::List(_) => "list",
+            Value::Null => "null",
         })
         .to_string()
     }

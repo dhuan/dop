@@ -41,6 +41,7 @@ fn to_yaml_value(value: &Value) -> Option<YamlValue> {
 
             Some(YamlValue::from(obj))
         }
+        Value::Null => Some(YamlValue::Null),
     }
 }
 
