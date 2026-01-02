@@ -187,3 +187,13 @@ pub enum ValueType {
     String,
     Number,
 }
+
+impl ValueType {
+    pub fn to_string(&self) -> &str {
+        match self {
+            ValueType::String => "string",
+            ValueType::Number => "number",
+            ValueType::Auto => "auto",
+        }
+    }
+}

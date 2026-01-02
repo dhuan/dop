@@ -53,6 +53,8 @@ struct Args {
     input_format: Option<String>,
     #[arg(short = 'P', long)]
     pretty: bool,
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 struct FormatConfig {
@@ -127,8 +129,17 @@ fn main() {
         .read_to_string(&mut stdin_buffer)
         .expect("Failed to read stdin!!!");
 
+    let log_v: fn(message: &str) -> () = match cli.args.verbose {
+        false => |_| {},
+        true => |message| eprintln!("{} {}", chrono::offset::Local::now(), message),
+    };
+
     let value = match cli.args.input_format {
-        None => guess_value(stdin_buffer.as_str()),
+        None => {
+            log_v("Input format was not specified. Will try to find out.");
+
+            guess_value(stdin_buffer.as_str())
+        }
         Some(input_format) => match FORMATS.iter().find(|&format| format.name == input_format) {
             None => {
                 println!("Invalid format!");
@@ -143,12 +154,14 @@ fn main() {
     };
 
     if let None = value {
-        println!("Failed to parse input.");
+        log_v("Failed to parse input.");
 
         std::process::exit(1);
     }
 
     let (value, format) = value.unwrap();
+
+    log_v(&format!("Input format identified as: {}", format.name));
 
     let output_format = match cli.args.output_format {
         None => format,
@@ -175,14 +188,18 @@ fn main() {
             return TraverseAction::Leave;
         }
 
+        log_v(&format!("Processing key '{}'.", key));
+
         if let Some(key_filter_regex) = cli.args.key_filter_regex.clone() {
             if !regex_test(&key_filter_regex, &key) {
+                log_v(&format!("Key Filter Regex did not pass, skipping."));
                 return TraverseAction::Leave;
             }
         }
 
         if let Some(key_filter_equal) = cli.args.key_filter_equal.clone() {
             if key_filter_equal != key {
+                log_v(&format!("Key Filter did not pass, skipping."));
                 return TraverseAction::Leave;
             }
         }
@@ -212,6 +229,7 @@ fn main() {
         .expect("command failed!");
 
         if !exit_ok {
+            log_v("Script's exit status was not OK. Removing value.");
             return TraverseAction::Remove;
         }
 
@@ -231,6 +249,8 @@ fn main() {
             };
 
         if let None = new_value_type {
+            log_v("The value was not modified, moving on.");
+
             return TraverseAction::Leave;
         }
 
@@ -242,7 +262,7 @@ fn main() {
             )
             .expect("Failed to parse to string.")
             .as_str(),
-            new_value_type,
+            &new_value_type,
             format.format,
         );
 
@@ -250,8 +270,19 @@ fn main() {
             value_modified = Value::String(trim_new_line(&s).to_string());
         }
 
+        log_v(&format!(
+            "Value was modified to ({}) {}",
+            new_value_type.to_string(),
+            value_modified.to_string(format.format, false)
+        ));
+
         TraverseAction::Change(value_modified)
     });
+
+    log_v(&format!(
+        "Execution finished. Printing out in '{}' format.",
+        output_format.name
+    ));
 
     if let Some(query) = cli.args.query {
         if let Some(value) = value.change(&query.split(".").collect::<Vec<&str>>()) {
@@ -270,14 +301,14 @@ fn main() {
     );
 }
 
-fn resolve_value(value: &str, t: ValueType, format: &dyn DataFormat) -> Value {
+fn resolve_value(value: &str, t: &ValueType, format: &dyn DataFormat) -> Value {
     let value = trim_new_line(value);
 
-    if t == ValueType::String {
+    if *t == ValueType::String {
         return Value::String(value.to_string());
     }
 
-    if t == ValueType::Number {
+    if *t == ValueType::Number {
         return Value::Number(value.parse::<i64>().unwrap());
     }
 
