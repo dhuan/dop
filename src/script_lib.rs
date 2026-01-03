@@ -12,6 +12,10 @@ pub fn key_match(env: &ScriptEnv, arg: Option<&[&str]>) -> (Option<String>, bool
     )
 }
 
+pub fn is_null(env: &ScriptEnv, _: Option<&[&str]>) -> (Option<String>, bool) {
+    (None, env.value_type == "null")
+}
+
 pub fn is_string(env: &ScriptEnv, _: Option<&[&str]>) -> (Option<String>, bool) {
     (None, env.value_type == "string")
 }

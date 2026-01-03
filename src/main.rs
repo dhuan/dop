@@ -29,6 +29,7 @@ enum Commands {
     IsBool,
     IsList,
     IsObject,
+    IsNull,
 }
 
 #[derive(Clone, clap::Args)]
@@ -84,6 +85,7 @@ fn main() {
         Some(Commands::KeyMatch { search }) => {
             Some((Box::new(script_lib::key_match), Some(&[search])))
         }
+        Some(Commands::IsNull) => Some((Box::new(script_lib::is_null), None)),
         Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
         Some(Commands::IsNumber) => Some((Box::new(script_lib::is_number), None)),
         Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
@@ -318,6 +320,10 @@ fn resolve_value(value: &str, t: &ValueType, format: &dyn DataFormat) -> Value {
 
     if *t == ValueType::String {
         return Value::Int(value.parse::<i64>().unwrap());
+    }
+
+    if value == "null" && *t == ValueType::Auto {
+        return Value::Null;
     }
 
     if value == "true" {

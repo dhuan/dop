@@ -1,0 +1,37 @@
+# Handle NULL in JSON: Modify a NULL value
+
+# INPUT
+
+{
+  "a_null_value": null,
+  "foo": "bar"
+}
+
+# SCRIPT
+
+if dop is-null
+then
+    dop set 123
+fi
+
+# EXPECT
+
+{"a_null_value":123,"foo":"bar"}
+
+---
+
+# Handle NULL in JSON: Modify to NULL
+
+# INPUT
+
+{
+  "foo": "bar"
+}
+
+# SCRIPT
+
+dop set null
+
+# EXPECT
+
+{"foo":null}
