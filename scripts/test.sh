@@ -100,6 +100,8 @@ do
             printf "✓ %s\n" "${TEST_NAME}"
         else
             printf "✖ %s\nExpected: %s\nResult:   %s\n" "${TEST_NAME}" "${TEST_EXPECT}" "${TEST_RESULT}"
+
+            exit 1
         fi
 
         CURRENT_BLOCK="$(($CURRENT_BLOCK + 1))"
