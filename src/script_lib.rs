@@ -21,7 +21,7 @@ pub fn is_string(env: &ScriptEnv, _: Option<&[&str]>) -> (Option<String>, bool) 
 }
 
 pub fn is_number(env: &ScriptEnv, _: Option<&[&str]>) -> (Option<String>, bool) {
-    (None, env.value_type == "number")
+    (None, env.value_type == "int" || env.value_type == "float")
 }
 
 pub fn is_bool(env: &ScriptEnv, _: Option<&[&str]>) -> (Option<String>, bool) {
