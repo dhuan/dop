@@ -92,7 +92,7 @@ do
         then
             TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} < $TEST_INPUT)"
         else
-            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} "${TEST_SCRIPT}" < $TEST_INPUT)"
+            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} -e "${TEST_SCRIPT}" < $TEST_INPUT)"
         fi
 
         if [ "${TEST_RESULT}" = "${TEST_EXPECT}" ]

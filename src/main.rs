@@ -41,6 +41,7 @@ struct SetArgs {
 
 #[derive(Clone, clap::Args, Debug)]
 struct Args {
+    #[arg(short = 'e', long = "execute")]
     script: Option<String>,
     #[arg(short, long)]
     query: Option<String>,
