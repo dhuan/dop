@@ -11,7 +11,7 @@
 
 # SCRIPT
 
-if dop key-match '^data\.some_list\.\d+$'
+if dop key-match '^data\.some_list\[\d+\]$'
 then
     echo $((${VALUE} * 2)) > $SET_VALUE 
 fi

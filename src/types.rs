@@ -1,3 +1,4 @@
+use crate::path::PathEntry;
 use std::collections::{HashMap, VecDeque};
 
 #[derive(Debug, Clone)]
@@ -12,21 +13,17 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn change<'a>(&'a mut self, path: &[&str]) -> Option<&'a mut Value> {
+    pub fn change<'a>(&'a mut self, path: &[PathEntry]) -> Option<&'a mut Value> {
         let mut current = self;
 
         if path.len() == 0 {
             return Some(current);
         }
 
-        for &visit_item in path {
-            current = match current {
-                Value::List(list) => {
-                    let index = visit_item.parse::<usize>().ok()?;
-
-                    list.get_mut(index)?
-                }
-                Value::Object(obj) => obj.get_mut(visit_item)?,
+        for visit_item in path {
+            current = match (current, visit_item) {
+                (Value::List(list), PathEntry::Index(index)) => list.get_mut(*index)?,
+                (Value::Object(obj), PathEntry::Field(field_name)) => obj.get_mut(field_name)?,
                 _ => {
                     return None;
                 }
@@ -36,31 +33,26 @@ impl Value {
         Some(current)
     }
 
-    pub fn remove<'a>(&'a mut self, path: &[&str]) {
+    pub fn remove<'a>(&'a mut self, path: &[PathEntry]) {
         let (parent, key) = match path.len() {
             0 => {
                 return;
             }
-            1 => (self, path[0]),
+            1 => (self, &path[0]),
             _ => (
                 self.change(&path[0..(path.len() - 1)]).unwrap(),
-                path[path.len() - 1],
+                &path[path.len() - 1],
             ),
         };
 
-        if let Value::List(list) = parent {
-            let index = key.parse::<usize>();
-            if let Err(_) = index {
-                return;
+        match (parent, key) {
+            (Value::List(list), PathEntry::Index(index)) => {
+                list.remove(*index);
             }
-
-            let index = index.unwrap();
-
-            list.remove(index);
-        }
-
-        if let Value::Object(obj) = parent {
-            obj.remove(key);
+            (Value::Object(obj), PathEntry::Field(field_name)) => {
+                obj.remove(field_name);
+            }
+            _ => {}
         }
     }
 
@@ -93,18 +85,16 @@ impl Value {
 
     pub fn traverse<T>(&self, f: T) -> Value
     where
-        T: Fn(String, &Value) -> TraverseAction,
+        T: Fn(&[PathEntry], &str, &Value) -> TraverseAction,
     {
         let mut value = self.clone();
-        let mut visit: VecDeque<String> = VecDeque::new();
+        let mut visit: VecDeque<Vec<PathEntry>> = VecDeque::new();
         for key in get_keys(&value).unwrap_or(vec![]) {
-            visit.push_back(key);
+            visit.push_back(vec![key]);
         }
 
         while let Some(path_base) = visit.pop_front() {
-            let path = path_base.split(".").collect::<Vec<&str>>();
-
-            let value_current = get_nested(&mut value, &path);
+            let value_current = get_nested(&mut value, &path_base);
 
             if let None = value_current {
                 continue;
@@ -112,31 +102,38 @@ impl Value {
 
             let value_current = value_current.unwrap();
 
-            match f(path.join("."), &value_current) {
+            match f(&path_base, &crate::path::encode(&path_base), &value_current) {
                 TraverseAction::Change(value_changed) => {
-                    if let Some(value_ptr) = value.change(&path) {
+                    if let Some(value_ptr) = value.change(&path_base) {
                         *value_ptr = value_changed;
                     }
                 }
                 TraverseAction::Remove => {
                     if let Some(Value::List(list)) =
-                        get_nested(&mut value, &path[0..(path.len() - 1)])
+                        get_nested(&mut value, &path_base[0..(path_base.len() - 1)])
                     {
-                        if path.last().unwrap().parse::<usize>().unwrap() != (list.len() - 1) {
+                        let last_index = match path_base.last().unwrap() {
+                            PathEntry::Index(index) => *index,
+                            _ => panic!("Something went wrong"),
+                        };
+
+                        if last_index != (list.len() - 1) {
                             visit.push_front(path_base.clone());
                         }
                     }
 
-                    value.remove(&path);
+                    value.remove(&path_base);
                 }
                 TraverseAction::Leave => {}
             }
 
             let keys = get_keys(&value_current);
             if let Some(keys) = keys {
-                let path = path.join(".");
                 for key in keys.iter() {
-                    visit.push_back(format!("{}.{}", path, key));
+                    let mut new_entry = path_base.clone();
+                    new_entry.push(key.clone());
+
+                    visit.push_back(new_entry);
                 }
             }
         }
@@ -151,9 +148,14 @@ pub enum TraverseAction {
     Change(Value),
 }
 
-fn get_keys(value: &Value) -> Option<Vec<String>> {
+fn get_keys(value: &Value) -> Option<Vec<PathEntry>> {
     if let Value::Object(obj) = value {
-        return Some(obj.keys().into_iter().map(|key| key.to_owned()).collect());
+        return Some(
+            obj.keys()
+                .into_iter()
+                .map(|key| PathEntry::Field(key.to_owned()))
+                .collect(),
+        );
     }
 
     if let Value::List(list) = value {
@@ -161,15 +163,15 @@ fn get_keys(value: &Value) -> Option<Vec<String>> {
             vec![0; list.len()]
                 .iter()
                 .enumerate()
-                .map(|(i, _)| i.to_string())
-                .collect::<Vec<String>>(),
+                .map(|(i, _)| PathEntry::Index(i))
+                .collect::<Vec<PathEntry>>(),
         );
     }
 
     None
 }
 
-fn get_nested(value: &mut Value, path: &[&str]) -> Option<Value> {
+fn get_nested(value: &mut Value, path: &[PathEntry]) -> Option<Value> {
     Some(value.change(&path)?.to_owned())
 }
 

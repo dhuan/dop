@@ -53,7 +53,7 @@ get_nth_section_name () {
 
 TEST_INPUT=$(mktemp)
 
-find tests -type f | while read -r TEST_FILE
+find tests -type f | sort | while read -r TEST_FILE
 do
     CURRENT_BLOCK="0"
 

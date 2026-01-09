@@ -37,7 +37,7 @@ fi
 
 # OPTIONS
 
--K 1
+-K [1]
 
 # INPUT
 
@@ -57,7 +57,7 @@ dop set --string 2
 
 # OPTIONS
 
--K 1
+-K [1]
 
 # INPUT
 
@@ -77,7 +77,7 @@ dop set '{"foo":"bar"}'
 
 # OPTIONS
 
--K 1
+-K [1]
 
 # INPUT
 
@@ -97,7 +97,7 @@ dop set '[50,70]'
 
 # OPTIONS
 
--K 1
+-K [1]
 
 # INPUT
 

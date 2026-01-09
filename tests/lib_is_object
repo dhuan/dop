@@ -2,7 +2,7 @@
 
 # OPTIONS
 
--k data\..*
+-k data\[
 
 # INPUT
 

@@ -22,7 +22,7 @@ echo $((${VALUE} * 2)) > $SET_VALUE
 
 # SCRIPT
 
-if [ "${KEY}" = "1" ]
+if [ "${KEY}" = "[1]" ]
 then
     echo $((${VALUE} * 2)) > $SET_VALUE 
 fi

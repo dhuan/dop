@@ -3,6 +3,7 @@ use std::io::Read;
 
 mod common;
 mod json;
+mod path;
 mod script_lib;
 mod toml;
 mod types;
@@ -186,22 +187,27 @@ fn main() {
     let tmp_file_value_string = mktemp().expect("failed to create tmp file!");
     let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
-    let mut value = value.traverse(|key, value| {
+    let mut value = value.traverse(|key, key_encoded, value| {
+        let field_name = match key.last().unwrap() {
+            crate::path::PathEntry::Field(field_name) => field_name,
+            crate::path::PathEntry::Index(index) => &format!("{}", index),
+        };
+
         if let None = cli.args.script {
             return TraverseAction::Leave;
         }
 
-        log_v(&format!("Processing key '{}'.", key));
+        log_v(&format!("Processing key '{}'.", key_encoded));
 
         if let Some(key_filter_regex) = cli.args.key_filter_regex.clone() {
-            if !regex_test(&key_filter_regex, &key) {
+            if !regex_test(&key_filter_regex, &key_encoded) {
                 log_v(&format!("Key Filter Regex did not pass, skipping."));
                 return TraverseAction::Leave;
             }
         }
 
         if let Some(key_filter_equal) = cli.args.key_filter_equal.clone() {
-            if key_filter_equal != key {
+            if key_filter_equal != key_encoded {
                 log_v(&format!("Key Filter did not pass, skipping."));
                 return TraverseAction::Leave;
             }
@@ -214,7 +220,7 @@ fn main() {
         let exit_ok = exec(
             cli.args.script.clone().unwrap().as_str(),
             &vec![
-                ("KEY", key.as_str()),
+                ("KEY", key_encoded),
                 (
                     "VALUE",
                     unquote(value.to_string(output_format.format, false).as_str()),
@@ -223,10 +229,7 @@ fn main() {
                 ("SET_VALUE", tmp_file_value.as_str()),
                 ("SET_VALUE_STRING", tmp_file_value_string.as_str()),
                 ("SET_VALUE_NUMBER", tmp_file_value_number.as_str()),
-                (
-                    "FIELD_NAME",
-                    field_name(&key).unwrap_or("".to_string()).as_str(),
-                ),
+                ("FIELD_NAME", field_name),
             ],
         )
         .expect("command failed!");
@@ -288,7 +291,7 @@ fn main() {
     ));
 
     if let Some(query) = cli.args.query {
-        if let Some(value) = value.change(&query.split(".").collect::<Vec<&str>>()) {
+        if let Some(value) = value.change(&crate::path::decode(&query).unwrap()) {
             println!("{}", value.to_string(output_format.format, cli.args.pretty));
         }
 
@@ -356,8 +359,4 @@ fn guess_value(stdin: &str) -> Option<(Value, &'static FormatConfig)> {
     }
 
     None
-}
-
-fn field_name(path: &str) -> Option<String> {
-    Some(path.split(".").last().unwrap_or("").to_string())
 }

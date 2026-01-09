@@ -2,7 +2,7 @@
 
 # OPTIONS
 
--q 1
+-q [1]
 
 # INPUT
 
@@ -18,7 +18,7 @@
 
 # OPTIONS
 
--q foo.bar.3
+-q foo.bar[3]
 
 # INPUT
 
@@ -43,7 +43,7 @@
 
 # OPTIONS
 
--q foo.bar.3
+-q foo.bar[3]
 
 # INPUT
 

@@ -2,7 +2,7 @@
 
 # OPTIONS
 
--k ^some_data.list_a.[0-9]{1,}$
+-k some_data.list_a\[
 
 # SCRIPT
 
@@ -27,7 +27,7 @@ echo $((${VALUE} * 2)) > $SET_VALUE
 
 # OPTIONS
 
---key-filter data.some_list.\d+
+--key-filter data.some_list\[\d+\]
 
 # SCRIPT
 
@@ -51,7 +51,7 @@ exit 1
 
 # OPTIONS
 
--K data.some_list.1
+-K data.some_list[1]
 
 # SCRIPT
 

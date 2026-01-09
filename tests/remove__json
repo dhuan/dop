@@ -6,7 +6,7 @@
 
 # SCRIPT
 
-test "${KEY}" != "2"
+test "${KEY}" != "[2]"
 
 # EXPECT
 
