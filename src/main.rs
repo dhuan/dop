@@ -213,9 +213,17 @@ fn main() {
             }
         }
 
-        let tmp_file_modified_time = get_modified_time(&tmp_file_value).unwrap();
-        let tmp_file_string_modified_time = get_modified_time(&tmp_file_value_string).unwrap();
-        let tmp_file_number_modified_time = get_modified_time(&tmp_file_value_number).unwrap();
+        for file in vec![
+            &tmp_file_value,
+            &tmp_file_value_string,
+            &tmp_file_value_number,
+        ] {
+            if let Err(err) = std::fs::write(file, UNCHANGED_CONTENT) {
+                eprintln!("Failed to write to temporary files: {}", err.to_string());
+
+                std::process::exit(1);
+            }
+        }
 
         let exit_ok = exec(
             cli.args.script.clone().unwrap().as_str(),
@@ -239,19 +247,15 @@ fn main() {
             return TraverseAction::Remove;
         }
 
-        let (new_value_file, new_value_type): (String, Option<ValueType>) =
-            if file_has_been_modified(&tmp_file_value, &tmp_file_modified_time).unwrap() {
-                (tmp_file_value.clone(), Some(ValueType::Auto))
-            } else if file_has_been_modified(&tmp_file_value_string, &tmp_file_string_modified_time)
-                .unwrap()
-            {
-                (tmp_file_value_string.clone(), Some(ValueType::String))
-            } else if file_has_been_modified(&tmp_file_value_number, &tmp_file_number_modified_time)
-                .unwrap()
-            {
-                (tmp_file_value_number.clone(), Some(ValueType::Int))
+        let (new_value_file, new_value_type): (&str, Option<ValueType>) =
+            if file_has_been_modified(&tmp_file_value).unwrap() {
+                (&tmp_file_value, Some(ValueType::Auto))
+            } else if file_has_been_modified(&tmp_file_value_string).unwrap() {
+                (&tmp_file_value_string, Some(ValueType::String))
+            } else if file_has_been_modified(&tmp_file_value_number).unwrap() {
+                (&tmp_file_value_number, Some(ValueType::Int))
             } else {
-                ("".to_string(), None)
+                ("", None)
             };
 
         if let None = new_value_type {

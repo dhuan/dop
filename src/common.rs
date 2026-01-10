@@ -1,5 +1,6 @@
 use std::process::Command;
-use std::time::SystemTime;
+
+pub const UNCHANGED_CONTENT: &str = "### MODIFY THIS FILE TO CHANGE A VALUE. ###";
 
 pub fn exec(script: &str, env: &[(&str, &str)]) -> Result<bool, std::io::Error> {
     let mut cmd = Command::new("sh");
@@ -27,17 +28,8 @@ pub fn trim_new_line(s: &str) -> &str {
     s.strip_suffix("\r\n").or(s.strip_suffix("\n")).unwrap_or(s)
 }
 
-pub fn file_has_been_modified(
-    file_path: &str,
-    time: &std::time::SystemTime,
-) -> Result<bool, std::io::Error> {
-    let time2 = std::fs::metadata(file_path)?.modified()?;
-
-    Ok(time.cmp(&time2) != std::cmp::Ordering::Equal)
-}
-
-pub fn get_modified_time(file_path: &str) -> Result<SystemTime, std::io::Error> {
-    Ok(std::fs::metadata(file_path)?.modified()?)
+pub fn file_has_been_modified(file_path: &str) -> Result<bool, std::io::Error> {
+    Ok(std::fs::read_to_string(file_path)? != UNCHANGED_CONTENT)
 }
 
 pub fn unquote(s: &str) -> &str {

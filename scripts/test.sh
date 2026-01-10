@@ -53,6 +53,8 @@ get_nth_section_name () {
 
 TEST_INPUT=$(mktemp)
 
+export PATH=${PATH}:$(pwd)/target/debug
+
 find tests -type f | sort | while read -r TEST_FILE
 do
     CURRENT_BLOCK="0"
