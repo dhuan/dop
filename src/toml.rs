@@ -1,4 +1,5 @@
-use crate::types::{DataFormat, Value};
+use crate::types::DataFormat;
+use crate::value::*;
 use std::collections::HashMap;
 use toml::Value as TomlValue;
 

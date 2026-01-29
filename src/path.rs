@@ -2,6 +2,7 @@
 pub enum PathEntry {
     Field(String),
     Index(usize),
+    IndexNew,
 }
 
 pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
@@ -41,7 +42,12 @@ pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
 
         if c == ']' {
             is_parsing_index = false;
-            result.push(PathEntry::Index(current.parse::<usize>().unwrap()));
+
+            if current == "" {
+                result.push(PathEntry::IndexNew);
+            } else {
+                result.push(PathEntry::Index(current.parse::<usize>().unwrap()));
+            }
 
             if i < (path.len() - 1) {
                 current.clear();
@@ -83,6 +89,7 @@ pub fn encode(path: &Vec<PathEntry>) -> String {
                 field_name
             ),
             PathEntry::Index(index) => format!("[{}]", index),
+            PathEntry::IndexNew => format!("[]"),
         })
         .collect::<Vec<String>>()
         .join("")
@@ -104,6 +111,14 @@ mod tests {
                 PathEntry::Field("bar".to_string())
             ]),
             "foo.bar",
+        );
+
+        assert_eq!(
+            encode(&vec![
+                PathEntry::Field("foo".to_string()),
+                PathEntry::IndexNew,
+            ]),
+            "foo[]",
         );
 
         assert_eq!(
@@ -137,6 +152,15 @@ mod tests {
                 PathEntry::Field("foo".to_string()),
                 PathEntry::Field("bar".to_string()),
                 PathEntry::Index(10),
+            ]),
+        );
+
+        assert_eq!(
+            decode("foo.bar[]"),
+            Some(vec![
+                PathEntry::Field("foo".to_string()),
+                PathEntry::Field("bar".to_string()),
+                PathEntry::IndexNew,
             ]),
         );
 

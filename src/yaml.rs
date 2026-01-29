@@ -1,4 +1,5 @@
-use crate::types::{DataFormat, Value};
+use crate::types::DataFormat;
+use crate::value::*;
 use serde_yaml::Value as YamlValue;
 use std::collections::HashMap;
 

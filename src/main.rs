@@ -7,10 +7,12 @@ mod path;
 mod script_lib;
 mod toml;
 mod types;
+mod value;
 mod yaml;
 
 use crate::common::*;
 use crate::types::*;
+use crate::value::*;
 
 #[derive(Parser)]
 struct Cli {
@@ -191,6 +193,7 @@ fn main() {
         let field_name = match key.last().unwrap() {
             crate::path::PathEntry::Field(field_name) => field_name,
             crate::path::PathEntry::Index(index) => &format!("{}", index),
+            _ => panic!("Not accepted!"),
         };
 
         if let None = cli.args.script {
@@ -231,7 +234,14 @@ fn main() {
                 ("KEY", key_encoded),
                 (
                     "VALUE",
-                    unquote(value.to_string(output_format.format, false).as_str()),
+                    unquote(
+                        value
+                            .to_string(
+                                |value, pretty| output_format.format.to_str(value, pretty),
+                                false,
+                            )
+                            .as_str(),
+                    ),
                 ),
                 ("VALUE_TYPE", &value.type_encoded()),
                 ("SET_VALUE", tmp_file_value.as_str()),
@@ -283,7 +293,7 @@ fn main() {
         log_v(&format!(
             "Value was modified to ({}) {}",
             new_value_type.to_string(),
-            value_modified.to_string(format.format, false)
+            value_modified.to_string(|value, pretty| format.format.to_str(value, pretty), false)
         ));
 
         TraverseAction::Change(value_modified)
@@ -296,7 +306,13 @@ fn main() {
 
     if let Some(query) = cli.args.query {
         if let Some(value) = value.change(&crate::path::decode(&query).unwrap()) {
-            println!("{}", value.to_string(output_format.format, cli.args.pretty));
+            println!(
+                "{}",
+                value.to_string(
+                    |value, pretty| output_format.format.to_str(value, pretty),
+                    cli.args.pretty
+                )
+            );
         }
 
         return;
