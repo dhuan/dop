@@ -1,7 +1,7 @@
 use crate::path::*;
 use std::collections::{HashMap, VecDeque};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     String(String),
     Int(i64),
@@ -14,33 +14,35 @@ pub enum Value {
 
 impl Value {
     pub fn has(&self, path: &[PathEntry]) -> bool {
+        self.get(path).is_some()
+    }
+
+    pub fn get(&self, path: &[PathEntry]) -> Option<&Value> {
         if path.len() == 0 {
-            return false;
+            return None;
         }
 
         if path.len() == 1 {
             return match (self, path[0].clone()) {
                 (Value::List(list), PathEntry::Index(index)) => match list.len() {
-                    0 => false,
-                    len => index <= (len - 1),
+                    0 => None,
+                    _ => list.iter().nth(index),
                 },
-                (Value::Object(obj), PathEntry::Field(field_name)) => {
-                    obj.get(&field_name).is_some()
-                }
-                _ => false,
+                (Value::Object(obj), PathEntry::Field(field_name)) => obj.get(&field_name),
+                _ => None,
             };
         }
 
         match (self, path[0].clone()) {
             (Value::List(list), PathEntry::Index(index)) => match list.iter().nth(index) {
-                None => false,
-                Some(value) => value.has(&path[1..]),
+                None => None,
+                Some(value) => value.get(&path[1..]),
             },
             (Value::Object(obj), PathEntry::Field(field_name)) => match obj.get(&field_name) {
-                None => false,
-                Some(value) => value.has(&path[1..]),
+                None => None,
+                Some(value) => value.get(&path[1..]),
             },
-            _ => false,
+            _ => None,
         }
     }
 
@@ -122,6 +124,59 @@ impl Value {
         Some(current)
     }
 
+    pub fn diff(&self, compare: &Value) -> Option<Vec<(Vec<PathEntry>, Value)>> {
+        let mut result: Vec<(Vec<PathEntry>, Value)> = vec![];
+        let mut ignore: Vec<String> = vec![];
+
+        compare.traverse(|path, path_encoded, value| {
+            if ignore.len() > 0 {
+                let path = path.to_vec();
+                for i in 0..(path.len()) {
+                    let path_check = crate::path::encode(&path[0..i].to_vec());
+
+                    if ignore.contains(&path_check) {
+                        return TraverseAction::Leave;
+                    }
+                }
+            }
+
+            let should_add_to_result = match self.get(path) {
+                None => true,
+                Some(self_value) => {
+                    !type_equals(self_value, value)
+                        || match (self_value, value) {
+                            (Value::String(a), Value::String(b)) => a != b,
+                            (Value::Int(a), Value::Int(b)) => a != b,
+                            (Value::Float(a), Value::Float(b)) => a != b,
+                            (Value::Bool(a), Value::Bool(b)) => a != b,
+                            _ => false,
+                        }
+                }
+            };
+
+            if should_add_to_result {
+                result.push((path.to_vec(), value.clone()));
+
+                let is_object_or_list = match value {
+                    Value::Object(_) => true,
+                    Value::List(_) => true,
+                    _ => false,
+                };
+
+                if is_object_or_list {
+                    ignore.push(path_encoded.to_string());
+                }
+            }
+
+            TraverseAction::Leave
+        });
+
+        match result.len() {
+            0 => None,
+            _ => Some(result),
+        }
+    }
+
     pub fn remove<'a>(&'a mut self, path: &[PathEntry]) {
         let (parent, key) = match path.len() {
             0 => {
@@ -173,9 +228,9 @@ impl Value {
         .to_string()
     }
 
-    pub fn traverse<T>(&self, f: T) -> Value
+    pub fn traverse<T>(&self, mut f: T) -> Value
     where
-        T: Fn(&[PathEntry], &str, &Value) -> TraverseAction,
+        T: FnMut(&[PathEntry], &str, &Value) -> TraverseAction,
     {
         let mut value = self.clone();
         let mut visit: VecDeque<Vec<PathEntry>> = VecDeque::new();
@@ -363,6 +418,60 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_diff() {
+        let cases = vec![
+            (
+                r#"{"foo":"bar"}"#,
+                r#"{"foo":"bar","hello":"world"}"#,
+                vec![(
+                    vec![PathEntry::Field("hello".to_string())],
+                    crate::json::Json {}.from_str(r#""world""#).unwrap(),
+                )],
+            ),
+            (
+                r#"{"foo":"bar"}"#,
+                r#"{"foo":"bar","some_obj":{"a":{"b":{"c":"some value"}}}}"#,
+                vec![(
+                    vec![PathEntry::Field("some_obj".to_string())],
+                    crate::json::Json {}
+                        .from_str(r#"{"a":{"b":{"c":"some value"}}}"#)
+                        .unwrap(),
+                )],
+            ),
+            (
+                r#"{"foo":"bar"}"#,
+                r#"{"foo":"bar2"}"#,
+                vec![(
+                    vec![PathEntry::Field("foo".to_string())],
+                    crate::json::Json {}.from_str(r#""bar2""#).unwrap(),
+                )],
+            ),
+        ];
+
+        for (input_a, input_b, expected) in cases {
+            let value1 = crate::json::Json {}.from_str(input_a).unwrap();
+            let value2 = crate::json::Json {}.from_str(input_b).unwrap();
+
+            let result = value1.diff(&value2).unwrap();
+
+            assert_eq!(result.len(), expected.len());
+
+            for i in 0..result.len() {
+                assert_eq!(result[i].1, expected[i].1);
+
+                let path_a = &result[i].0;
+                let path_b = &expected[i].0;
+
+                assert_eq!(path_a.len(), path_b.len());
+
+                for i in 0..path_a.len() {
+                    assert_eq!(path_a[i], path_b[i]);
+                }
+            }
+        }
+    }
+
     fn to_json_str(value: &Value, pretty: bool) -> Option<String> {
         Some(match pretty {
             true => serde_json::to_string_pretty(&to_json_value(value)?).ok()?,
@@ -396,4 +505,8 @@ mod tests {
             }
         }
     }
+}
+
+fn type_equals(a: &Value, b: &Value) -> bool {
+    a.type_encoded() == b.type_encoded()
 }
