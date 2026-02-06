@@ -8,7 +8,7 @@
 
 # SCRIPT
 
-echo $((${VALUE} * 2)) > $SET_VALUE 
+dop set $((${VALUE} * 2))
 
 # EXPECT
 
@@ -30,7 +30,7 @@ echo $((${VALUE} * 2)) > $SET_VALUE
 
 if [ "${KEY}" = "[1]" ]
 then
-    echo $((${VALUE} * 2)) > $SET_VALUE 
+    dop set $((${VALUE} * 2))
 fi
 
 # EXPECT

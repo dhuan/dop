@@ -6,7 +6,7 @@
 
 # SCRIPT
 
-echo $((${VALUE} * 2)) > $SET_VALUE
+dop set $((${VALUE} * 2))
 
 # INPUT
 
@@ -55,7 +55,7 @@ exit 1
 
 # SCRIPT
 
-echo $((${VALUE} * 2)) > $SET_VALUE 
+dop set $((${VALUE} * 2))
 
 # INPUT
 

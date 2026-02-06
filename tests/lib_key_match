@@ -13,7 +13,7 @@
 
 if dop key-match '^data\.some_list\[\d+\]$'
 then
-    echo $((${VALUE} * 2)) > $SET_VALUE 
+    dop set $((${VALUE} * 2))
 fi
 
 # EXPECT

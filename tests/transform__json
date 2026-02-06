@@ -8,7 +8,7 @@
 
 if [ "${KEY}" = "[1]" ]
 then
-    printf '{"foo":"bar"}' > $SET_VALUE 
+    dop set '{"foo":"bar"}' 
 fi
 
 # EXPECT
@@ -27,7 +27,7 @@ fi
 
 if [ "${KEY}" = "[1]" ]
 then
-    printf '%s' "${VALUE}" > ${SET_VALUE_STRING}
+    dop set -s "${VALUE}"
 fi
 
 # EXPECT
@@ -46,7 +46,7 @@ fi
 
 if [ "${KEY}" = "[1]" ]
 then
-    printf '%s' "${VALUE}" > ${SET_VALUE_NUMBER}
+    dop set "${VALUE}"
 fi
 
 # EXPECT

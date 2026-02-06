@@ -12,7 +12,7 @@
 
 if dop is-object
 then
-    echo true > $SET_VALUE
+    dop set true
 fi
 
 # EXPECT

@@ -8,7 +8,7 @@
 
 if dop is-list
 then
-    echo true > $SET_VALUE
+    dop set true
 fi
 
 # EXPECT
