@@ -85,46 +85,6 @@ const FORMATS: &[&FormatConfig] = &[
 fn main() {
     let cli = Cli::parse();
 
-    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&[&str]>)> = match &cli.commands {
-        Some(Commands::KeyMatch { search }) => {
-            Some((Box::new(script_lib::key_match), Some(&[search])))
-        }
-        Some(Commands::IsNull) => Some((Box::new(script_lib::is_null), None)),
-        Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
-        Some(Commands::IsNumber) => Some((Box::new(script_lib::is_number), None)),
-        Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
-        Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
-        Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
-        Some(Commands::Set(args)) => Some((
-            Box::new(script_lib::set(match args.convert_to_string {
-                false => ValueType::Auto,
-                true => ValueType::String,
-            })),
-            Some(&vec![args.value.as_str()]),
-        )),
-        None => None,
-    };
-    if let Some((f, param)) = script_lib_fn {
-        match script_lib::parse_script_env() {
-            None => {
-                println!("Failed to parse script env!");
-            }
-            Some(env) => {
-                let (result, ok) = f(&env, param);
-
-                if let Some(result) = result {
-                    println!("{result}");
-                }
-
-                if !ok {
-                    std::process::exit(1);
-                }
-            }
-        }
-
-        return;
-    }
-
     let available_formats = FORMATS
         .iter()
         .map(|format| format.name)
@@ -167,6 +127,51 @@ fn main() {
 
     let (value, format) = value.unwrap();
 
+    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&[&str]>)> = match &cli.commands {
+        Some(Commands::KeyMatch { search }) => {
+            Some((Box::new(script_lib::key_match), Some(&[search])))
+        }
+        Some(Commands::IsNull) => Some((Box::new(script_lib::is_null), None)),
+        Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
+        Some(Commands::IsNumber) => Some((Box::new(script_lib::is_number), None)),
+        Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
+        Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
+        Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
+        Some(Commands::Set(args)) => Some((
+            Box::new(script_lib::set(match args.convert_to_string {
+                false => ValueType::Auto,
+                true => ValueType::String,
+            })),
+            Some(&vec![args.value.as_str()]),
+        )),
+        None => None,
+    };
+    if let Some((f, param)) = script_lib_fn {
+        match script_lib::parse_script_env() {
+            None => {
+                println!("Failed to parse script env!");
+            }
+            Some(env) => {
+                let format = FORMATS
+                    .iter()
+                    .find(|format| format.name == env.format_name)
+                    .unwrap();
+
+                let (result, ok) = f(&env, param, format.format);
+
+                if let Some(result) = result {
+                    println!("{result}");
+                }
+
+                if !ok {
+                    std::process::exit(1);
+                }
+            }
+        }
+
+        return;
+    }
+
     log_v(&format!("Input format identified as: {}", format.name));
 
     let output_format = match cli.args.output_format {
@@ -186,10 +191,8 @@ fn main() {
     };
 
     let tmp_file_value = mktemp().expect("failed to create tmp file!");
-    let tmp_file_value_string = mktemp().expect("failed to create tmp file!");
-    let tmp_file_value_number = mktemp().expect("failed to create tmp file!");
 
-    let mut value = value.traverse(|key, key_encoded, value| {
+    let mut value = value.traverse(|key, key_encoded, value, value_all| {
         let field_name = match key.last().unwrap() {
             crate::path::PathEntry::Field(field_name) => field_name,
             crate::path::PathEntry::Index(index) => &format!("{}", index),
@@ -216,19 +219,16 @@ fn main() {
             }
         }
 
-        for file in vec![
+        if let Err(err) = std::fs::write(
             &tmp_file_value,
-            &tmp_file_value_string,
-            &tmp_file_value_number,
-        ] {
-            if let Err(err) = std::fs::write(file, UNCHANGED_CONTENT) {
-                eprintln!("Failed to write to temporary files: {}", err.to_string());
+            format.format.to_str(&value_all, true).unwrap(),
+        ) {
+            eprintln!("Failed to write to temporary files: {}", err.to_string());
 
-                std::process::exit(1);
-            }
+            std::process::exit(1);
         }
 
-        let exit_ok = exec(
+        let (exit_ok, stdout, stderr) = exec(
             cli.args.script.clone().unwrap().as_str(),
             &vec![
                 ("KEY", key_encoded),
@@ -244,59 +244,52 @@ fn main() {
                     ),
                 ),
                 ("VALUE_TYPE", &value.type_encoded()),
-                ("SET_VALUE", tmp_file_value.as_str()),
-                ("SET_VALUE_STRING", tmp_file_value_string.as_str()),
-                ("SET_VALUE_NUMBER", tmp_file_value_number.as_str()),
+                ("VALUE_ALL", tmp_file_value.as_str()),
+                ("VALUE_FORMAT", format.name),
                 ("FIELD_NAME", field_name),
             ],
         )
         .expect("command failed!");
+
+        log_v(&format!(
+            "Output:\nSTDOUT:\n{}\nSTDERR:\n{}\n",
+            stdout, stderr
+        ));
 
         if !exit_ok {
             log_v("Script's exit status was not OK. Removing value.");
             return TraverseAction::Remove;
         }
 
-        let (new_value_file, new_value_type): (&str, Option<ValueType>) =
-            if file_has_been_modified(&tmp_file_value).unwrap() {
-                (&tmp_file_value, Some(ValueType::Auto))
-            } else if file_has_been_modified(&tmp_file_value_string).unwrap() {
-                (&tmp_file_value_string, Some(ValueType::String))
-            } else if file_has_been_modified(&tmp_file_value_number).unwrap() {
-                (&tmp_file_value_number, Some(ValueType::Int))
-            } else {
-                ("", None)
-            };
+        let value_modified = match file_has_been_modified(&tmp_file_value).unwrap() {
+            false => None,
+            true => Some(
+                format
+                    .format
+                    .from_str(
+                        &String::from_utf8(
+                            std::fs::read(&tmp_file_value).expect("Failed to read tmp file."),
+                        )
+                        .unwrap(),
+                    )
+                    .unwrap(),
+            ),
+        };
 
-        if let None = new_value_type {
+        if value_modified.is_none() {
             log_v("The value was not modified, moving on.");
 
             return TraverseAction::Leave;
         }
 
-        let new_value_type = new_value_type.unwrap();
-
-        let mut value_modified = resolve_value(
-            String::from_utf8(
-                std::fs::read(new_value_file).expect("Failed to read tmp file after executing."),
-            )
-            .expect("Failed to parse to string.")
-            .as_str(),
-            &new_value_type,
-            format.format,
-        );
-
-        if let Value::String(s) = value_modified {
-            value_modified = Value::String(trim_new_line(&s).to_string());
-        }
+        let value_modified = value_modified.unwrap();
 
         log_v(&format!(
-            "Value was modified to ({}) {}",
-            new_value_type.to_string(),
-            value_modified.to_string(|value, pretty| format.format.to_str(value, pretty), false)
+            "Value was modified to {}",
+            format.format.to_str(&value_modified, false).unwrap(),
         ));
 
-        TraverseAction::Change(value_modified)
+        TraverseAction::ChangeRoot(value_modified)
     });
 
     log_v(&format!(
@@ -325,50 +318,6 @@ fn main() {
             .to_str(&value, cli.args.pretty)
             .unwrap()
     );
-}
-
-fn resolve_value(value: &str, t: &ValueType, format: &dyn DataFormat) -> Value {
-    let value = trim_new_line(value);
-
-    if *t == ValueType::String {
-        return Value::String(value.to_string());
-    }
-
-    if *t == ValueType::Int {
-        return Value::Int(value.parse::<i64>().unwrap());
-    }
-
-    if *t == ValueType::Float {
-        return Value::Float(value.parse::<f64>().unwrap());
-    }
-
-    if *t == ValueType::String {
-        return Value::Int(value.parse::<i64>().unwrap());
-    }
-
-    if value == "null" && *t == ValueType::Auto {
-        return Value::Null;
-    }
-
-    if value == "true" {
-        return Value::Bool(true);
-    }
-
-    if value == "false" {
-        return Value::Bool(false);
-    }
-
-    if let Ok(num) = value.parse::<i64>() {
-        return Value::Int(num);
-    }
-
-    if value.starts_with("[") || value.starts_with("{") {
-        if let Some(value) = format.from_str(value) {
-            return value;
-        }
-    }
-
-    return Value::String(value.to_string());
 }
 
 fn guess_value(stdin: &str) -> Option<(Value, &'static FormatConfig)> {

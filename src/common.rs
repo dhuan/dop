@@ -2,7 +2,7 @@ use std::process::Command;
 
 pub const UNCHANGED_CONTENT: &str = "### MODIFY THIS FILE TO CHANGE A VALUE. ###";
 
-pub fn exec(script: &str, env: &[(&str, &str)]) -> Result<bool, std::io::Error> {
+pub fn exec(script: &str, env: &[(&str, &str)]) -> Result<(bool, String, String), std::io::Error> {
     let mut cmd = Command::new("sh");
 
     for (key, value) in env {
@@ -11,7 +11,11 @@ pub fn exec(script: &str, env: &[(&str, &str)]) -> Result<bool, std::io::Error> 
 
     let cmd_result = cmd.arg("-c").arg(script).output()?;
 
-    Ok(cmd_result.status.success())
+    Ok((
+        cmd_result.status.success(),
+        String::from_utf8(cmd_result.stdout).unwrap_or_default(),
+        String::from_utf8(cmd_result.stderr).unwrap_or_default(),
+    ))
 }
 
 pub fn mktemp() -> Result<String, String> {
@@ -22,10 +26,6 @@ pub fn mktemp() -> Result<String, String> {
     let path = String::from_utf8(out.stdout).map_err(|err| err.to_string())?;
 
     Ok(path.trim_end().to_owned())
-}
-
-pub fn trim_new_line(s: &str) -> &str {
-    s.strip_suffix("\r\n").or(s.strip_suffix("\n")).unwrap_or(s)
 }
 
 pub fn file_has_been_modified(file_path: &str) -> Result<bool, std::io::Error> {

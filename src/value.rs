@@ -124,11 +124,12 @@ impl Value {
         Some(current)
     }
 
+    #[allow(unused)]
     pub fn diff(&self, compare: &Value) -> Option<Vec<(Vec<PathEntry>, Value)>> {
         let mut result: Vec<(Vec<PathEntry>, Value)> = vec![];
         let mut ignore: Vec<String> = vec![];
 
-        compare.traverse(|path, path_encoded, value| {
+        compare.traverse(|path, path_encoded, value, _| {
             if ignore.len() > 0 {
                 let path = path.to_vec();
                 for i in 0..(path.len()) {
@@ -230,7 +231,7 @@ impl Value {
 
     pub fn traverse<T>(&self, mut f: T) -> Value
     where
-        T: FnMut(&[PathEntry], &str, &Value) -> TraverseAction,
+        T: FnMut(&[PathEntry], &str, &Value, &Value) -> TraverseAction,
     {
         let mut value = self.clone();
         let mut visit: VecDeque<Vec<PathEntry>> = VecDeque::new();
@@ -247,7 +248,13 @@ impl Value {
 
             let value_current = value_current.unwrap();
 
-            match f(&path_base, &crate::path::encode(&path_base), &value_current) {
+            match f(
+                &path_base,
+                &crate::path::encode(&path_base),
+                &value_current,
+                &value,
+            ) {
+                TraverseAction::ChangeRoot(value_new) => value = value_new,
                 TraverseAction::Change(value_changed) => {
                     if let Some(value_ptr) = value.change(&path_base) {
                         *value_ptr = value_changed;
@@ -290,7 +297,9 @@ impl Value {
 pub enum TraverseAction {
     Leave,
     Remove,
+    #[allow(unused)]
     Change(Value),
+    ChangeRoot(Value),
 }
 
 fn get_keys(value: &Value) -> Option<Vec<PathEntry>> {
@@ -325,6 +334,31 @@ mod tests {
     use super::*;
     use crate::types::DataFormat;
     use serde_json::Value as JsonValue;
+
+    #[test]
+    fn test_traverse_change_one_value() {
+        let value_new = from_json("[1,2,3,4]").traverse(|_path, key_encoded, value, _value_all| {
+            if key_encoded == "[1]" {
+                if let Value::Int(num) = value {
+                    return TraverseAction::Change(Value::Int(num * 2));
+                }
+            }
+
+            TraverseAction::Leave
+        });
+
+        assert_eq!(value_new, from_json("[1,4,3,4]"));
+    }
+
+    #[test]
+    fn test_traverse_change_root() {
+        let value_new =
+            from_json("[1,2,3,4]").traverse(|_path, _key_encoded, _value, _value_all| {
+                TraverseAction::ChangeRoot(Value::String("changed!".to_string()))
+            });
+
+        assert_eq!(value_new, Value::String("changed!".to_string()));
+    }
 
     #[test]
     fn test_change_existing_value() {
@@ -470,6 +504,10 @@ mod tests {
                 }
             }
         }
+    }
+
+    fn from_json(json_encoded: &str) -> Value {
+        crate::json::Json {}.from_str(json_encoded).unwrap()
     }
 
     fn to_json_str(value: &Value, pretty: bool) -> Option<String> {

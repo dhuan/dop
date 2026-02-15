@@ -8,27 +8,15 @@ pub trait DataFormat {
 pub struct ScriptEnv {
     pub value_type: String,
     pub file_set_value: String,
-    pub file_set_value_string: String,
     pub key: String,
+    pub format_name: String,
 }
 
-pub type ScriptLibFn = dyn Fn(&ScriptEnv, Option<&[&str]>) -> (Option<String>, bool);
+pub type ScriptLibFn =
+    dyn Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool);
 
 #[derive(Debug, PartialEq)]
 pub enum ValueType {
     Auto,
     String,
-    Int,
-    Float,
-}
-
-impl ValueType {
-    pub fn to_string(&self) -> &str {
-        match self {
-            ValueType::String => "string",
-            ValueType::Int => "int",
-            ValueType::Float => "float",
-            ValueType::Auto => "auto",
-        }
-    }
 }
