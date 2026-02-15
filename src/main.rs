@@ -252,8 +252,23 @@ fn main() {
         .expect("command failed!");
 
         log_v(&format!(
-            "Output:\nSTDOUT:\n{}\nSTDERR:\n{}\n",
-            stdout, stderr
+            "Output: {}",
+            match (stdout.clone(), stderr.clone()) {
+                (None, None) => "N/A".to_string(),
+                _ => {
+                    let mut out = String::new();
+
+                    if let Some(stdout) = stdout {
+                        out.push_str(format!("\nstdout: {}", stdout).as_str());
+                    }
+
+                    if let Some(stderr) = stderr {
+                        out.push_str(format!("\nstderr: {}", stderr).as_str());
+                    }
+
+                    out
+                }
+            }
         ));
 
         if !exit_ok {
