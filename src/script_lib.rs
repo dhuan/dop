@@ -71,34 +71,31 @@ pub fn set(
 ) -> impl Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool) {
     move |env: &ScriptEnv, args: Option<&[&str]>, format: &dyn DataFormat| {
         let args = args.unwrap();
-        let len = args.len();
-
-        if len == 0 {
+        if args.len() == 0 {
             println!("Set expects at least one parameter.");
 
             std::process::exit(1);
         }
 
-        if len > 1 {
-            println!("Not supported yet.");
-
-            std::process::exit(1);
-        }
-
-        let value = args.iter().nth(0).unwrap();
+        let is_changing_outside = args.len() > 1;
+        let (key, value) = match is_changing_outside {
+            true => (args[0].to_string(), args[1].to_string()),
+            false => (env.key.to_string(), args[0].to_string()),
+        };
 
         let mut current_value = format
             .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
             .unwrap();
 
-        let value_to_be_modified = current_value
-            .change(&path::decode(&env.key).unwrap())
-            .unwrap();
+        let value_to_be_modified = current_value.change(&path::decode(&key).unwrap());
+        if let None = value_to_be_modified {
+            return (None, true);
+        }
 
-        *value_to_be_modified = match value_type {
+        *(value_to_be_modified.unwrap()) = match value_type {
             ValueType::String => Value::String(value.to_string()),
             _ => format
-                .from_str(value)
+                .from_str(&value)
                 .unwrap_or(Value::String(value.to_string())),
         };
 

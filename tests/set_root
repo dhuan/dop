@@ -1,0 +1,82 @@
+# Set outer values: with simple array
+
+# OPTIONS
+
+-k [1]
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set two
+dop set [0] one
+dop set [2] three
+
+# EXPECT
+
+["one","two","three"]
+
+---
+
+# Set outer values: add values to an array (at root)
+
+# OPTIONS
+
+-k [1]
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set [] 4
+dop set [] 5
+
+# EXPECT
+
+[1,2,3,4,5]
+
+---
+
+# Set outer values: add values to an array
+
+# OPTIONS
+
+-k [1]
+
+# INPUT
+
+{"foo":{"bar":[1,2]}}
+
+# SCRIPT
+
+dop set foo.bar[] 3
+
+# EXPECT
+
+{"foo":{"bar":[1,2,3]}}
+
+---
+
+# Set outer values: with objects
+
+# OPTIONS
+
+-k foo.bar
+
+# INPUT
+
+{"foo":{"bar":"value"}}
+
+# SCRIPT
+
+dop set value_changed
+dop set foo.new_key "new value"
+
+# EXPECT
+
+{"foo":{"bar":"value_changed","new_key":"new value"}}
+
