@@ -8,7 +8,10 @@
 
 # SCRIPT
 
-test "${KEY}" != "[2]"
+if [ "${KEY}" = "[2]" ]
+then
+    dop del
+fi
 
 # EXPECT
 
@@ -27,7 +30,10 @@ foo:
 
 # SCRIPT
 
-test "${KEY}" != "foo.bar"
+if [ "${KEY}" = "foo.bar" ]
+then
+    dop del
+fi
 
 # EXPECT
 
@@ -53,7 +59,10 @@ foo:
 
 # SCRIPT
 
-test "${KEY}" != "foo.bar.some_object"
+if [ "${KEY}" = "foo.bar.some_object" ]
+then
+    dop del
+fi
 
 # EXPECT
 

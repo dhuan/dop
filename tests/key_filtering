@@ -31,7 +31,7 @@ dop set $((${VALUE} * 2))
 
 # SCRIPT
 
-exit 1
+dop del
 
 # INPUT
 

@@ -254,7 +254,24 @@ impl Value {
                 &value_current,
                 &value,
             ) {
-                TraverseAction::ChangeRoot(value_new) => value = value_new,
+                TraverseAction::ChangeRoot(value_new) => {
+                    let value_previous = value.clone();
+                    value = value_new;
+
+                    if let Some(parent) = path_parent(&path_base) {
+                        let value_parent = value.get(&parent);
+                        let value_parent_previous = value_previous.get(&parent);
+
+                        match (value_parent, value_parent_previous) {
+                            (Some(Value::List(list_new)), Some(Value::List(list_previous))) => {
+                                if list_previous.len() > list_new.len() {
+                                    visit.push_front(path_base.clone());
+                                }
+                            }
+                            _ => (),
+                        }
+                    }
+                }
                 TraverseAction::Change(value_changed) => {
                     if let Some(value_ptr) = value.change(&path_base) {
                         *value_ptr = value_changed;
@@ -296,6 +313,7 @@ impl Value {
 
 pub enum TraverseAction {
     Leave,
+    #[allow(unused)]
     Remove,
     #[allow(unused)]
     Change(Value),
@@ -373,6 +391,24 @@ mod tests {
         *value2 = Value::String("changed".to_string());
 
         assert_eq!(to_json_str(&value, false).unwrap(), r#"[1,"changed",3,4]"#,);
+    }
+
+    #[test]
+    fn test_traverse_delete_all_from_array() {
+        let value_new =
+            from_json(r#"{"list":[1,2,3]}"#).traverse(|path, _key_encoded, value, value_all| {
+                match value {
+                    Value::Int(_) => {
+                        let mut value_all = value_all.clone();
+                        value_all.remove(path);
+
+                        TraverseAction::ChangeRoot(value_all)
+                    }
+                    _ => TraverseAction::Leave,
+                }
+            });
+
+        assert_eq!(to_json_str(&value_new, false).unwrap(), r#"{"list":[]}"#,);
     }
 
     #[test]
@@ -547,4 +583,12 @@ mod tests {
 
 fn type_equals(a: &Value, b: &Value) -> bool {
     a.type_encoded() == b.type_encoded()
+}
+
+fn path_parent(path: &[PathEntry]) -> Option<Vec<PathEntry>> {
+    if path.len() < 2 {
+        return None;
+    }
+
+    Some(path[0..(path.len() - 1)].to_vec())
 }

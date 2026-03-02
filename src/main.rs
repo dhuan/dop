@@ -26,6 +26,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Set(SetArgs),
+    Del(DelArgs),
     KeyMatch { search: String },
     IsString,
     IsNumber,
@@ -40,6 +41,11 @@ struct SetArgs {
     value: Vec<String>,
     #[arg(short = 's', long = "string")]
     convert_to_string: bool,
+}
+
+#[derive(Clone, clap::Args)]
+struct DelArgs {
+    key: Option<String>,
 }
 
 #[derive(Clone, clap::Args, Debug)]
@@ -137,6 +143,7 @@ fn main() {
         Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
         Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
         Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
+        Some(Commands::Del(args)) => Some((Box::new(script_lib::del(args.key.clone())), None)),
         Some(Commands::Set(args)) => Some((
             Box::new(script_lib::set(match args.convert_to_string {
                 false => ValueType::Auto,
@@ -228,7 +235,7 @@ fn main() {
             std::process::exit(1);
         }
 
-        let (exit_ok, stdout, stderr) = exec(
+        let (_, stdout, stderr) = exec(
             cli.args.script.clone().unwrap().as_str(),
             &vec![
                 ("KEY", key_encoded),
@@ -270,11 +277,6 @@ fn main() {
                 }
             }
         ));
-
-        if !exit_ok {
-            log_v("Script's exit status was not OK. Removing value.");
-            return TraverseAction::Remove;
-        }
 
         let value_modified = match file_has_been_modified(&tmp_file_value).unwrap() {
             false => None,
