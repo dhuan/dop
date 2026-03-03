@@ -1,0 +1,25 @@
+# Remove from outside
+
+# INPUT
+
+{
+  "foo": {
+    "bar": [
+      1,
+      2,
+      3
+    ]
+  }
+}
+
+# SCRIPT
+
+if [ "${KEY}" = "foo.bar[1]" ]
+then
+    dop del foo.bar
+fi
+
+# EXPECT
+
+{"foo":{}}
+
