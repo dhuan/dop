@@ -23,3 +23,18 @@ fi
 
 {"foo":{}}
 
+---
+
+# Try to remove a value that does not exist
+
+# INPUT
+
+{"foo":{"bar":1}}
+
+# SCRIPT
+
+dop del this.value.does.not.exist
+
+# EXPECT
+
+{"foo":{"bar":1}}
