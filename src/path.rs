@@ -30,7 +30,7 @@ pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
         }
 
         if c == '[' {
-            if current.len() > 0 {
+            if !current.is_empty() {
                 result.push(PathEntry::Field(current.clone()));
                 current.clear();
             }
@@ -43,7 +43,7 @@ pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
         if c == ']' {
             is_parsing_index = false;
 
-            if current == "" {
+            if current.is_empty() {
                 result.push(PathEntry::IndexNew);
             } else {
                 result.push(PathEntry::Index(current.parse::<usize>().unwrap()));
@@ -76,7 +76,7 @@ pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
     Some(result)
 }
 
-pub fn encode(path: &Vec<PathEntry>) -> String {
+pub fn encode(path: &[PathEntry]) -> String {
     path.iter()
         .enumerate()
         .map(|(i, entry)| match entry {
@@ -89,7 +89,7 @@ pub fn encode(path: &Vec<PathEntry>) -> String {
                 field_name
             ),
             PathEntry::Index(index) => format!("[{}]", index),
-            PathEntry::IndexNew => format!("[]"),
+            PathEntry::IndexNew => "[]".to_string(),
         })
         .collect::<Vec<String>>()
         .join("")

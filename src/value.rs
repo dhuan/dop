@@ -18,7 +18,7 @@ impl Value {
     }
 
     pub fn get(&self, path: &[PathEntry]) -> Option<&Value> {
-        if path.len() == 0 {
+        if path.is_empty() {
             return None;
         }
 
@@ -26,7 +26,7 @@ impl Value {
             return match (self, path[0].clone()) {
                 (Value::List(list), PathEntry::Index(index)) => match list.len() {
                     0 => None,
-                    _ => list.iter().nth(index),
+                    _ => list.get(index),
                 },
                 (Value::Object(obj), PathEntry::Field(field_name)) => obj.get(&field_name),
                 _ => None,
@@ -34,7 +34,7 @@ impl Value {
         }
 
         match (self, path[0].clone()) {
-            (Value::List(list), PathEntry::Index(index)) => match list.iter().nth(index) {
+            (Value::List(list), PathEntry::Index(index)) => match list.get(index) {
                 None => None,
                 Some(value) => value.get(&path[1..]),
             },
@@ -46,8 +46,8 @@ impl Value {
         }
     }
 
-    pub fn add<'a>(&'a mut self, path: &[PathEntry], new_value: &Value) -> Option<Vec<PathEntry>> {
-        if path.len() == 0 {
+    pub fn add(&mut self, path: &[PathEntry], new_value: &Value) -> Option<Vec<PathEntry>> {
+        if path.is_empty() {
             return None;
         }
 
@@ -79,7 +79,7 @@ impl Value {
                     (Value::Object(obj), PathEntry::Field(field_name)) => {
                         obj.get_mut(field_name)?
                     }
-                    (Value::List(list), PathEntry::Index(index)) => list.iter_mut().nth(*index)?,
+                    (Value::List(list), PathEntry::Index(index)) => list.get_mut(*index)?,
                     _ => {
                         return None;
                     }
@@ -107,7 +107,7 @@ impl Value {
 
         let mut current = self;
 
-        if path.len() == 0 {
+        if path.is_empty() {
             return Some(current);
         }
 
@@ -130,10 +130,10 @@ impl Value {
         let mut ignore: Vec<String> = vec![];
 
         compare.traverse(|path, path_encoded, value, _| {
-            if ignore.len() > 0 {
+            if !ignore.is_empty() {
                 let path = path.to_vec();
                 for i in 0..(path.len()) {
-                    let path_check = crate::path::encode(&path[0..i].to_vec());
+                    let path_check = crate::path::encode(&path[0..i]);
 
                     if ignore.contains(&path_check) {
                         return TraverseAction::Leave;
@@ -158,11 +158,7 @@ impl Value {
             if should_add_to_result {
                 result.push((path.to_vec(), value.clone()));
 
-                let is_object_or_list = match value {
-                    Value::Object(_) => true,
-                    Value::List(_) => true,
-                    _ => false,
-                };
+                let is_object_or_list = matches!(value, Value::Object(_) | Value::List(_));
 
                 if is_object_or_list {
                     ignore.push(path_encoded.to_string());
@@ -178,7 +174,7 @@ impl Value {
         }
     }
 
-    pub fn remove<'a>(&'a mut self, path: &[PathEntry]) {
+    pub fn remove(&mut self, path: &[PathEntry]) {
         let (parent, key) = match path.len() {
             0 => {
                 return;
@@ -242,7 +238,7 @@ impl Value {
         while let Some(path_base) = visit.pop_front() {
             let value_current = get_nested(&mut value, &path_base);
 
-            if let None = value_current {
+            if value_current.is_none() {
                 continue;
             }
 
@@ -262,13 +258,11 @@ impl Value {
                         let value_parent = value.get(&parent);
                         let value_parent_previous = value_previous.get(&parent);
 
-                        match (value_parent, value_parent_previous) {
-                            (Some(Value::List(list_new)), Some(Value::List(list_previous))) => {
-                                if list_previous.len() > list_new.len() {
-                                    visit.push_front(path_base.clone());
-                                }
-                            }
-                            _ => (),
+                        if let (Some(Value::List(list_new)), Some(Value::List(list_previous))) =
+                            (value_parent, value_parent_previous)
+                            && list_previous.len() > list_new.len()
+                        {
+                            visit.push_front(path_base.clone());
                         }
                     }
                 }
@@ -324,7 +318,6 @@ fn get_keys(value: &Value) -> Option<Vec<PathEntry>> {
     if let Value::Object(obj) = value {
         return Some(
             obj.keys()
-                .into_iter()
                 .map(|key| PathEntry::Field(key.to_owned()))
                 .collect(),
         );
@@ -344,7 +337,7 @@ fn get_keys(value: &Value) -> Option<Vec<PathEntry>> {
 }
 
 fn get_nested(value: &mut Value, path: &[PathEntry]) -> Option<Value> {
-    Some(value.change(&path)?.to_owned())
+    Some(value.change(path)?.to_owned())
 }
 
 #[cfg(test)]

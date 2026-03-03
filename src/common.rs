@@ -73,7 +73,7 @@ pub fn trim_empty_lines(text: &str) -> Option<String> {
         lines.push(line);
     }
 
-    if lines.len() == 0 {
+    if lines.is_empty() {
         return None;
     }
 
@@ -87,7 +87,7 @@ pub fn trim_empty_lines(text: &str) -> Option<String> {
         lines.join("\n")
     };
 
-    if lines == "" { None } else { Some(lines) }
+    if lines.is_empty() { None } else { Some(lines) }
 }
 
 #[cfg(test)]

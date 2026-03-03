@@ -118,14 +118,14 @@ fn main() {
 
                 std::process::exit(1);
             }
-            Some(&format) => match format.format.from_str(stdin_buffer.as_str()) {
-                None => None,
-                Some(value) => Some((value, format)),
-            },
+            Some(&format) => format
+                .format
+                .from_str(stdin_buffer.as_str())
+                .map(|value| (value, format)),
         },
     };
 
-    if let None = value {
+    if value.is_none() {
         log_v("Failed to parse input.");
 
         std::process::exit(1);
@@ -184,7 +184,7 @@ fn main() {
     let output_format = match cli.args.output_format {
         None => format,
         Some(output_format) => *FORMATS
-            .into_iter()
+            .iter()
             .find(|&format| format.name == output_format)
             .unwrap_or_else(|| {
                 println!(
@@ -206,38 +206,38 @@ fn main() {
             _ => panic!("Not accepted!"),
         };
 
-        if let None = cli.args.script {
+        if cli.args.script.is_none() {
             return TraverseAction::Leave;
         }
 
         log_v(&format!("Processing key '{}'.", key_encoded));
 
-        if let Some(key_filter_regex) = cli.args.key_filter_regex.clone() {
-            if !regex_test(&key_filter_regex, &key_encoded) {
-                log_v(&format!("Key Filter Regex did not pass, skipping."));
-                return TraverseAction::Leave;
-            }
+        if let Some(key_filter_regex) = cli.args.key_filter_regex.clone()
+            && !regex_test(&key_filter_regex, key_encoded)
+        {
+            log_v("Key Filter Regex did not pass, skipping.");
+            return TraverseAction::Leave;
         }
 
-        if let Some(key_filter_equal) = cli.args.key_filter_equal.clone() {
-            if key_filter_equal != key_encoded {
-                log_v(&format!("Key Filter did not pass, skipping."));
-                return TraverseAction::Leave;
-            }
+        if let Some(key_filter_equal) = cli.args.key_filter_equal.clone()
+            && key_filter_equal != key_encoded
+        {
+            log_v("Key Filter did not pass, skipping.");
+            return TraverseAction::Leave;
         }
 
         if let Err(err) = std::fs::write(
             &tmp_file_value,
-            format.format.to_str(&value_all, true).unwrap(),
+            format.format.to_str(value_all, true).unwrap(),
         ) {
-            eprintln!("Failed to write to temporary files: {}", err.to_string());
+            eprintln!("Failed to write to temporary files: {}", err);
 
             std::process::exit(1);
         }
 
         let (_, stdout, stderr) = exec(
             cli.args.script.clone().unwrap().as_str(),
-            &vec![
+            &[
                 ("KEY", key_encoded),
                 (
                     "VALUE",

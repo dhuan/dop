@@ -8,14 +8,11 @@ pub fn key_match(
     arg: Option<&[&str]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
-    if let None = arg {
+    if arg.is_none() {
         return (None, false);
     }
 
-    (
-        None,
-        regex_test(arg.unwrap().into_iter().nth(0).unwrap(), &env.key),
-    )
+    (None, regex_test(arg.unwrap().first().unwrap(), &env.key))
 }
 
 pub fn is_null(
@@ -71,7 +68,7 @@ pub fn set(
 ) -> impl Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool) {
     move |env: &ScriptEnv, args: Option<&[&str]>, format: &dyn DataFormat| {
         let args = args.unwrap();
-        if args.len() == 0 {
+        if args.is_empty() {
             println!("Set expects at least one parameter.");
 
             std::process::exit(1);
@@ -88,7 +85,7 @@ pub fn set(
             .unwrap();
 
         let value_to_be_modified = current_value.change(&path::decode(&key).unwrap());
-        if let None = value_to_be_modified {
+        if value_to_be_modified.is_none() {
             return (None, true);
         }
 
