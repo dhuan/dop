@@ -199,6 +199,14 @@ fn main() {
 
     let tmp_file_value = mktemp().expect("failed to create tmp file!");
 
+    let script = cli.args.script.map(|script| {
+        if script.lines().count() == 1 {
+            std::fs::read_to_string(&script).unwrap_or(script)
+        } else {
+            script
+        }
+    });
+
     let mut value = value.traverse(|key, key_encoded, value, value_all| {
         let field_name = match key.last().unwrap() {
             crate::path::PathEntry::Field(field_name) => field_name,
@@ -206,9 +214,11 @@ fn main() {
             _ => panic!("Not accepted!"),
         };
 
-        if cli.args.script.is_none() {
+        if script.is_none() {
             return TraverseAction::Leave;
         }
+
+        let script = script.clone().unwrap();
 
         log_v(&format!("Processing key '{}'.", key_encoded));
 
@@ -236,7 +246,7 @@ fn main() {
         }
 
         let (_, stdout, stderr) = exec(
-            cli.args.script.clone().unwrap().as_str(),
+            script.as_str(),
             &[
                 ("KEY", key_encoded),
                 (

@@ -109,3 +109,7 @@ do
         CURRENT_BLOCK="$(($CURRENT_BLOCK + 1))"
     done
 done
+
+echo "---"
+
+sh tests/*.sh
