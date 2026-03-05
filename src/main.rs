@@ -52,6 +52,8 @@ struct DelArgs {
 struct Args {
     #[arg(short = 'e', long = "execute")]
     script: Option<String>,
+    #[arg(short = 'E', long = "execute-once")]
+    script_once: Option<String>,
     #[arg(short, long)]
     query: Option<String>,
     #[arg(short, long = "key-filter")]
@@ -90,6 +92,11 @@ const FORMATS: &[&FormatConfig] = &[
 
 fn main() {
     let cli = Cli::parse();
+
+    if cli.args.script.is_some() && cli.args.script_once.is_some() {
+        println!("Using both execute and execute-once together is not supported, yet.");
+        std::process::exit(1);
+    }
 
     let available_formats = FORMATS
         .iter()
@@ -199,7 +206,15 @@ fn main() {
 
     let tmp_file_value = mktemp().expect("failed to create tmp file!");
 
-    let script = cli.args.script.map(|script| {
+    let (script, script_once_mode) = if cli.args.script.is_some() {
+        (cli.args.script, false)
+    } else if cli.args.script_once.is_some() {
+        (cli.args.script_once, true)
+    } else {
+        (None, false)
+    };
+
+    let script = script.map(|script| {
         if script.lines().count() == 1 {
             std::fs::read_to_string(&script).unwrap_or(script)
         } else {
@@ -207,7 +222,15 @@ fn main() {
         }
     });
 
+    let mut exec_count = 0;
+
     let mut value = value.traverse(|key, key_encoded, value, value_all| {
+        exec_count += 1;
+
+        if exec_count > 1 && script_once_mode {
+            return TraverseAction::Leave;
+        }
+
         let field_name = match key.last().unwrap() {
             crate::path::PathEntry::Field(field_name) => field_name,
             crate::path::PathEntry::Index(index) => &format!("{}", index),
@@ -264,6 +287,10 @@ fn main() {
                 ("VALUE_ALL", tmp_file_value.as_str()),
                 ("VALUE_FORMAT", format.name),
                 ("FIELD_NAME", field_name),
+                (
+                    "IS_SCRIPT_ONCE",
+                    if script_once_mode { "true" } else { "false" },
+                ),
             ],
         )
         .expect("command failed!");

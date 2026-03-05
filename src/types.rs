@@ -10,6 +10,7 @@ pub struct ScriptEnv {
     pub file_set_value: String,
     pub key: String,
     pub format_name: String,
+    pub is_script_once: bool,
 }
 
 pub type ScriptLibFn =

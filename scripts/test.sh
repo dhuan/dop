@@ -72,6 +72,7 @@ do
 
         cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "INPUT" > $TEST_INPUT
         TEST_SCRIPT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "SCRIPT")"
+        TEST_SCRIPT_ONCE="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "SCRIPT_ONCE")"
         TEST_OPTIONS="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "OPTIONS")"
         TEST_EXPECT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "EXPECT")"
         TEST_NAME="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_nth_section_name 0)"
@@ -90,7 +91,10 @@ do
             continue
         fi
 
-        if [ -z "${TEST_SCRIPT}" ]
+        if [ -n "${TEST_SCRIPT_ONCE}" ]
+        then
+            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} -E "${TEST_SCRIPT_ONCE}" < $TEST_INPUT)"
+        elif [ -z "${TEST_SCRIPT}" ]
         then
             TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} < $TEST_INPUT)"
         else

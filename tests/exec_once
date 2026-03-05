@@ -1,0 +1,18 @@
+# Exec once
+
+# INPUT
+
+{"data":{"some_list":[1,2,3]}}
+
+# SCRIPT_ONCE
+
+dop set data.some_list[0] 4
+dop set -s data.some_list[1] 5
+dop set data.some_list[2] 6
+dop set data.some_list[] 7
+dop set this.field.does.not.exist test
+dop set data.foo bar
+
+# EXPECT
+
+{"data":{"foo":"bar","some_list":[4,"5",6,7]}}

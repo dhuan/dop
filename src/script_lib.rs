@@ -80,6 +80,10 @@ pub fn set(
             false => (env.key.to_string(), args[0].to_string()),
         };
 
+        if !is_changing_outside && env.is_script_once {
+            std::process::exit(1);
+        }
+
         let mut current_value = format
             .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
             .unwrap();
@@ -137,5 +141,9 @@ pub fn parse_script_env() -> Option<ScriptEnv> {
         file_set_value: std::env::var("VALUE_ALL").ok()?,
         key: std::env::var("KEY").ok()?,
         format_name: std::env::var("VALUE_FORMAT").ok()?,
+        is_script_once: std::env::var("IS_SCRIPT_ONCE")
+            .ok()
+            .map(|is_script_once| is_script_once == "true")
+            .unwrap_or(false),
     })
 }
