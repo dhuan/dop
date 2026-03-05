@@ -1,0 +1,17 @@
+# get value
+
+# OPTIONS
+
+-k list\[
+
+# INPUT
+
+{"data":{"copy_me":"OK"},"list":[1,2,3]}
+
+# SCRIPT
+
+dop set $(dop get data.copy_me)
+
+# EXPECT
+
+{"data":{"copy_me":"OK"},"list":["OK","OK","OK"]}
