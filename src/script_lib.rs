@@ -63,6 +63,42 @@ pub fn is_object(
     (None, env.value_type == "object")
 }
 
+pub fn get(
+    env: &ScriptEnv,
+    args: Option<&[&str]>,
+    format: &dyn DataFormat,
+) -> (Option<String>, bool) {
+    let key = match args.iter().nth(0) {
+        Some(&key) => key.join(""),
+        None => {
+            return (None, false);
+        }
+    };
+
+    let value = format
+        .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
+        .unwrap();
+
+    let key = match path::decode(&key) {
+        Some(key) => key,
+        None => {
+            return (None, false);
+        }
+    };
+
+    let value = match value.get(&key) {
+        Some(value) => value.clone(),
+        None => {
+            return (None, false);
+        }
+    };
+
+    return (
+        Some(value.to_string(|value, pretty| format.to_str(value, pretty), false)),
+        false,
+    );
+}
+
 pub fn set(
     value_type: ValueType,
 ) -> impl Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool) {

@@ -26,6 +26,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Set(SetArgs),
+    Get(GetArgs),
     Del(DelArgs),
     KeyMatch { search: String },
     IsString,
@@ -46,6 +47,11 @@ struct SetArgs {
 #[derive(Clone, clap::Args)]
 struct DelArgs {
     key: Option<String>,
+}
+
+#[derive(Clone, clap::Args)]
+struct GetArgs {
+    key: String,
 }
 
 #[derive(Clone, clap::Args, Debug)]
@@ -150,6 +156,7 @@ fn main() {
         Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
         Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
         Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
+        Some(Commands::Get(args)) => Some((Box::new(script_lib::get), Some(&[&args.key]))),
         Some(Commands::Del(args)) => Some((Box::new(script_lib::del(args.key.clone())), None)),
         Some(Commands::Set(args)) => Some((
             Box::new(script_lib::set(match args.convert_to_string {
