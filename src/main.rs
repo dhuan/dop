@@ -157,7 +157,13 @@ fn main() {
         Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
         Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
         Some(Commands::Get(args)) => Some((Box::new(script_lib::get), Some(&[&args.key]))),
-        Some(Commands::Del(args)) => Some((Box::new(script_lib::del(args.key.clone())), None)),
+        Some(Commands::Del(args)) => Some((
+            Box::new(script_lib::del),
+            Some(match args.key.clone() {
+                None => &[],
+                Some(key) => &[&key.clone()],
+            }),
+        )),
         Some(Commands::Set(args)) => Some((
             Box::new(script_lib::set(match args.convert_to_string {
                 false => ValueType::Auto,

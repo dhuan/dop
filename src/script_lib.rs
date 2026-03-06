@@ -147,28 +147,39 @@ pub fn set(
 }
 
 pub fn del(
-    delete_key: Option<String>,
-) -> impl Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool) {
-    move |env: &ScriptEnv, _args: Option<&[&str]>, format: &dyn DataFormat| {
-        let mut current_value = format
-            .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
-            .unwrap();
+    env: &ScriptEnv,
+    args: Option<&[&str]>,
+    format: &dyn DataFormat,
+) -> (Option<String>, bool) {
+    let delete_key = match args {
+        None => None,
+        Some(args) => {
+            if args.len() == 0 {
+                None
+            } else {
+                Some(args.iter().nth(0).unwrap())
+            }
+        }
+    };
 
-        let delete_key = match delete_key.clone() {
-            None => path::decode(&env.key.clone()).unwrap(),
-            Some(key) => path::decode(key.as_str()).unwrap(),
-        };
-
-        current_value.remove(&delete_key);
-
-        std::fs::write(
-            &env.file_set_value,
-            current_value.to_string(|value, pretty| format.to_str(value, pretty), false),
-        )
+    let mut current_value = format
+        .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
         .unwrap();
 
-        (None, true)
-    }
+    let delete_key = match delete_key.clone() {
+        None => path::decode(&env.key.clone()).unwrap(),
+        Some(key) => path::decode(key).unwrap(),
+    };
+
+    current_value.remove(&delete_key);
+
+    std::fs::write(
+        &env.file_set_value,
+        current_value.to_string(|value, pretty| format.to_str(value, pretty), false),
+    )
+    .unwrap();
+
+    (None, true)
 }
 
 pub fn parse_script_env() -> Option<ScriptEnv> {
