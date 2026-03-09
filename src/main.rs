@@ -365,7 +365,7 @@ fn main() {
     ));
 
     if let Some(query) = cli.args.query {
-        if let Some(value) = value.change(&crate::path::decode(&query).unwrap()) {
+        if let Some(value) = value.change(&crate::path::decode(&query).unwrap(), false) {
             println!(
                 "{}",
                 value.to_string(

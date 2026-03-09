@@ -46,7 +46,12 @@ impl Value {
         }
     }
 
-    pub fn add(&mut self, path: &[PathEntry], new_value: &Value) -> Option<Vec<PathEntry>> {
+    pub fn add(
+        &mut self,
+        path: &[PathEntry],
+        new_value: &Value,
+        force: bool,
+    ) -> Option<Vec<PathEntry>> {
         if path.is_empty() {
             return None;
         }
@@ -77,9 +82,30 @@ impl Value {
             } else {
                 value = match (value, &path[i]) {
                     (Value::Object(obj), PathEntry::Field(field_name)) => {
-                        obj.get_mut(field_name)?
+                        if force && obj.get(field_name).is_none() {
+                            obj.insert(
+                                field_name.to_string(),
+                                match path[i + 1] {
+                                    PathEntry::Field(_) => Value::Object(HashMap::new()),
+                                    _ => Value::List(vec![]),
+                                },
+                            );
+
+                            obj.get_mut(field_name)?
+                        } else {
+                            obj.get_mut(field_name)?
+                        }
                     }
                     (Value::List(list), PathEntry::Index(index)) => list.get_mut(*index)?,
+                    (Value::List(list), PathEntry::IndexNew) => {
+                        list.push(match path[i + 1] {
+                            PathEntry::Field(_) => Value::Object(HashMap::new()),
+                            _ => Value::List(vec![]),
+                        });
+
+                        let list_len = list.len();
+                        list.get_mut(list_len - 1)?
+                    }
                     _ => {
                         return None;
                     }
@@ -90,10 +116,10 @@ impl Value {
         None
     }
 
-    pub fn change<'a>(&'a mut self, path: &[PathEntry]) -> Option<&'a mut Value> {
+    pub fn change<'a>(&'a mut self, path: &[PathEntry], force: bool) -> Option<&'a mut Value> {
         let path = match self.has(path) {
             true => path,
-            false => match self.add(path, &Value::Null) {
+            false => match self.add(path, &Value::Null, force) {
                 None => {
                     return None;
                 }
@@ -102,7 +128,7 @@ impl Value {
         };
 
         if !self.has(path) {
-            self.add(path, &Value::Null);
+            self.add(path, &Value::Null, force);
         }
 
         let mut current = self;
@@ -181,7 +207,7 @@ impl Value {
             }
             1 => (self, &path[0]),
             _ => (
-                self.change(&path[0..(path.len() - 1)]).unwrap(),
+                self.change(&path[0..(path.len() - 1)], false).unwrap(),
                 &path[path.len() - 1],
             ),
         };
@@ -267,7 +293,7 @@ impl Value {
                     }
                 }
                 TraverseAction::Change(value_changed) => {
-                    if let Some(value_ptr) = value.change(&path_base) {
+                    if let Some(value_ptr) = value.change(&path_base, false) {
                         *value_ptr = value_changed;
                     }
                 }
@@ -337,7 +363,7 @@ fn get_keys(value: &Value) -> Option<Vec<PathEntry>> {
 }
 
 fn get_nested(value: &mut Value, path: &[PathEntry]) -> Option<Value> {
-    Some(value.change(path)?.to_owned())
+    Some(value.change(path, false)?.to_owned())
 }
 
 #[cfg(test)]
@@ -380,7 +406,7 @@ mod tests {
             Value::Int(4),
         ]);
 
-        let value2 = value.change(&vec![PathEntry::Index(1)]).unwrap();
+        let value2 = value.change(&vec![PathEntry::Index(1)], false).unwrap();
         *value2 = Value::String("changed".to_string());
 
         assert_eq!(to_json_str(&value, false).unwrap(), r#"[1,"changed",3,4]"#,);
@@ -411,6 +437,7 @@ mod tests {
             &vec![PathEntry::IndexNew],
             &Value::String("new value!".to_string()),
             r#"[1,2,3,4,"new value!"]"#,
+            false,
         );
     }
 
@@ -421,6 +448,7 @@ mod tests {
             &vec![PathEntry::Field("foo".to_string()), PathEntry::IndexNew],
             &Value::String("new value!".to_string()),
             r#"{"foo":[1,2,3,4,"new value!"]}"#,
+            false,
         );
     }
 
@@ -431,6 +459,7 @@ mod tests {
             &vec![PathEntry::Field("bar".to_string())],
             &Value::String("new value!".to_string()),
             r#"{"bar":"new value!","foo":[1,2,3,4]}"#,
+            false,
         );
     }
 
@@ -445,6 +474,34 @@ mod tests {
             ],
             &Value::Int(2),
             r#"{"foo":{"bar":{"key_a":1,"key_b":2}}}"#,
+            false,
+        );
+    }
+
+    #[test]
+    fn test_add_force() {
+        test_add(
+            r#"{"foo":"bar"}"#,
+            &crate::path::decode("one.two.three").unwrap(),
+            &Value::String("OK".to_string()),
+            r#"{"foo":"bar","one":{"two":{"three":"OK"}}}"#,
+            true,
+        );
+
+        test_add(
+            r#"{"foo":"bar"}"#,
+            &crate::path::decode("one.two[]").unwrap(),
+            &Value::String("OK".to_string()),
+            r#"{"foo":"bar","one":{"two":["OK"]}}"#,
+            true,
+        );
+
+        test_add(
+            r#"{"list":[{"foo":{}}]}"#,
+            &crate::path::decode("list[0].foo.bar.hello.world").unwrap(),
+            &Value::String("OK".to_string()),
+            r#"{"list":[{"foo":{"bar":{"hello":{"world":"OK"}}}}]}"#,
+            true,
         );
     }
 
@@ -466,10 +523,10 @@ mod tests {
         }
     }
 
-    fn test_add(value: &str, path: &[PathEntry], value_to_add: &Value, expect: &str) {
+    fn test_add(value: &str, path: &[PathEntry], value_to_add: &Value, expect: &str, force: bool) {
         let mut value = crate::json::Json {}.from_str(value).unwrap();
 
-        let value2 = value.change(path).unwrap();
+        let value2 = value.change(path, force).unwrap();
         *value2 = value_to_add.clone();
 
         assert_eq!(

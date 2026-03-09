@@ -124,7 +124,7 @@ pub fn set(
             .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
             .unwrap();
 
-        let value_to_be_modified = current_value.change(&path::decode(&key).unwrap());
+        let value_to_be_modified = current_value.change(&path::decode(&key).unwrap(), false);
         if value_to_be_modified.is_none() {
             return (None, true);
         }
