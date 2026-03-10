@@ -1,0 +1,13 @@
+# Set force
+
+# INPUT
+
+{"foo":"bar"}
+
+# SCRIPT_ONCE
+
+dop set -f one.two three
+
+# EXPECT
+
+{"foo":"bar","one":{"two":"three"}}

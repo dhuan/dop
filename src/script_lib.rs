@@ -101,6 +101,7 @@ pub fn get(
 
 pub fn set(
     value_type: ValueType,
+    force: bool,
 ) -> impl Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool) {
     move |env: &ScriptEnv, args: Option<&[&str]>, format: &dyn DataFormat| {
         let args = args.unwrap();
@@ -124,7 +125,7 @@ pub fn set(
             .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
             .unwrap();
 
-        let value_to_be_modified = current_value.change(&path::decode(&key).unwrap(), false);
+        let value_to_be_modified = current_value.change(&path::decode(&key).unwrap(), force);
         if value_to_be_modified.is_none() {
             return (None, true);
         }

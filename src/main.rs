@@ -42,6 +42,8 @@ struct SetArgs {
     value: Vec<String>,
     #[arg(short = 's', long = "string")]
     convert_to_string: bool,
+    #[arg(short = 'f', long = "force")]
+    force: bool,
 }
 
 #[derive(Clone, clap::Args)]
@@ -165,10 +167,13 @@ fn main() {
             }),
         )),
         Some(Commands::Set(args)) => Some((
-            Box::new(script_lib::set(match args.convert_to_string {
-                false => ValueType::Auto,
-                true => ValueType::String,
-            })),
+            Box::new(script_lib::set(
+                match args.convert_to_string {
+                    false => ValueType::Auto,
+                    true => ValueType::String,
+                },
+                args.force,
+            )),
             Some(&args.value.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
         )),
         None => None,
