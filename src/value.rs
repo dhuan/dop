@@ -82,7 +82,18 @@ impl Value {
             } else {
                 value = match (value, &path[i]) {
                     (Value::Object(obj), PathEntry::Field(field_name)) => {
-                        if force && obj.get(field_name).is_none() {
+                        let should_replace = force
+                            && match obj.get(field_name) {
+                                None => true,
+                                Some(existing) => !matches!(
+                                    (existing, &path[i + 1]),
+                                    (Value::Object(_), PathEntry::Field(_))
+                                        | (Value::List(_), PathEntry::Index(_))
+                                        | (Value::List(_), PathEntry::IndexNew)
+                                ),
+                            };
+
+                        if should_replace {
                             obj.insert(
                                 field_name.to_string(),
                                 match path[i + 1] {
@@ -90,11 +101,9 @@ impl Value {
                                     _ => Value::List(vec![]),
                                 },
                             );
-
-                            obj.get_mut(field_name)?
-                        } else {
-                            obj.get_mut(field_name)?
                         }
+
+                        obj.get_mut(field_name)?
                     }
                     (Value::List(list), PathEntry::Index(index)) => list.get_mut(*index)?,
                     (Value::List(list), PathEntry::IndexNew) => {
@@ -497,6 +506,14 @@ mod tests {
             &crate::path::decode("list[0].foo.bar.hello.world").unwrap(),
             &Value::String("OK".to_string()),
             r#"{"list":[{"foo":{"bar":{"hello":{"world":"OK"}}}}]}"#,
+            true,
+        );
+
+        test_add(
+            r#"{"foo":"bar"}"#,
+            &crate::path::decode("foo.bar").unwrap(),
+            &Value::String("OK".to_string()),
+            r#"{"foo":{"bar":"OK"}}"#,
             true,
         );
     }
