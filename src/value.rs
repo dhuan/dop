@@ -127,10 +127,6 @@ impl Value {
             },
         };
 
-        if !self.has(path) {
-            self.add(path, &Value::Null, force);
-        }
-
         let mut current = self;
 
         if path.is_empty() {
