@@ -11,3 +11,19 @@ dop set -f one.two three
 # EXPECT
 
 {"foo":"bar","one":{"two":"three"}}
+
+---
+
+# Set force: overwrite a value
+
+# INPUT
+
+{"foo":"bar"}
+
+# SCRIPT_ONCE
+
+dop set -f foo.bar OK
+
+# EXPECT
+
+{"foo":{"bar":"OK"}}
