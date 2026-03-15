@@ -5,7 +5,7 @@ use crate::value::*;
 
 pub fn key_match(
     env: &ScriptEnv,
-    arg: Option<&[&str]>,
+    arg: Option<&[String]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     if arg.is_none() {
@@ -17,7 +17,7 @@ pub fn key_match(
 
 pub fn is_null(
     env: &ScriptEnv,
-    _: Option<&[&str]>,
+    _: Option<&[String]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     (None, env.value_type == "null")
@@ -25,7 +25,7 @@ pub fn is_null(
 
 pub fn is_string(
     env: &ScriptEnv,
-    _: Option<&[&str]>,
+    _: Option<&[String]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     (None, env.value_type == "string")
@@ -33,7 +33,7 @@ pub fn is_string(
 
 pub fn is_number(
     env: &ScriptEnv,
-    _: Option<&[&str]>,
+    _: Option<&[String]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     (None, env.value_type == "int" || env.value_type == "float")
@@ -41,7 +41,7 @@ pub fn is_number(
 
 pub fn is_bool(
     env: &ScriptEnv,
-    _: Option<&[&str]>,
+    _: Option<&[String]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     (None, env.value_type == "bool")
@@ -49,7 +49,7 @@ pub fn is_bool(
 
 pub fn is_list(
     env: &ScriptEnv,
-    _: Option<&[&str]>,
+    _: Option<&[String]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     (None, env.value_type == "list")
@@ -57,7 +57,7 @@ pub fn is_list(
 
 pub fn is_object(
     env: &ScriptEnv,
-    _: Option<&[&str]>,
+    _: Option<&[String]>,
     _format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     (None, env.value_type == "object")
@@ -65,15 +65,34 @@ pub fn is_object(
 
 pub fn get(
     env: &ScriptEnv,
-    args: Option<&[&str]>,
+    args: Option<&[String]>,
     format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
-    let key = match args.iter().nth(0) {
-        Some(&key) => key.join(""),
-        None => {
-            return (None, false);
-        }
+    let args = args.unwrap_or_default();
+    let argsc = args.len();
+
+    if env.is_script_once && argsc == 0 {
+        return (
+            Some("'get' during execute-once must receive a key.".to_string()),
+            false,
+        );
+    }
+
+    let key = if env.is_script_once {
+        Some(args.iter().nth(0).unwrap().to_owned())
+    } else if argsc == 0 {
+        Some(env.key.clone())
+    } else if args.len() > 0 {
+        Some(args.iter().nth(0).unwrap().to_owned())
+    } else {
+        None
     };
+
+    if key.is_none() {
+        return (Some("Failed to parse.".to_string()), false);
+    }
+
+    let key = key.unwrap();
 
     let value = format
         .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
@@ -102,8 +121,8 @@ pub fn get(
 pub fn set(
     value_type: ValueType,
     force: bool,
-) -> impl Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool) {
-    move |env: &ScriptEnv, args: Option<&[&str]>, format: &dyn DataFormat| {
+) -> impl Fn(&ScriptEnv, Option<&[String]>, &dyn DataFormat) -> (Option<String>, bool) {
+    move |env: &ScriptEnv, args: Option<&[String]>, format: &dyn DataFormat| {
         let args = args.unwrap();
         if args.is_empty() {
             println!("Set expects at least one parameter.");
@@ -149,7 +168,7 @@ pub fn set(
 
 pub fn del(
     env: &ScriptEnv,
-    args: Option<&[&str]>,
+    args: Option<&[String]>,
     format: &dyn DataFormat,
 ) -> (Option<String>, bool) {
     let delete_key = match args {

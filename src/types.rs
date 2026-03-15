@@ -14,7 +14,7 @@ pub struct ScriptEnv {
 }
 
 pub type ScriptLibFn =
-    dyn Fn(&ScriptEnv, Option<&[&str]>, &dyn DataFormat) -> (Option<String>, bool);
+    dyn Fn(&ScriptEnv, Option<&[String]>, &dyn DataFormat) -> (Option<String>, bool);
 
 #[derive(Debug, PartialEq)]
 pub enum ValueType {

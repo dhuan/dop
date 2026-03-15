@@ -15,3 +15,19 @@ dop set $(dop get data.copy_me)
 # EXPECT
 
 {"data":{"copy_me":"OK"},"list":["OK","OK","OK"]}
+
+---
+
+# get value: retrieve current value
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+dop set $(($(dop get) * 2))
+
+# EXPECT
+
+[2,4,6]

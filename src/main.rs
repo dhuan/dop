@@ -53,7 +53,7 @@ struct DelArgs {
 
 #[derive(Clone, clap::Args)]
 struct GetArgs {
-    key: String,
+    params: Vec<String>,
 }
 
 #[derive(Clone, clap::Args, Debug)]
@@ -148,9 +148,9 @@ fn main() {
 
     let (value, format) = value.unwrap();
 
-    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&[&str]>)> = match &cli.commands {
+    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&[String]>)> = match &cli.commands {
         Some(Commands::KeyMatch { search }) => {
-            Some((Box::new(script_lib::key_match), Some(&[search])))
+            Some((Box::new(script_lib::key_match), Some(&[search.to_owned()])))
         }
         Some(Commands::IsNull) => Some((Box::new(script_lib::is_null), None)),
         Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
@@ -158,12 +158,12 @@ fn main() {
         Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
         Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
         Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
-        Some(Commands::Get(args)) => Some((Box::new(script_lib::get), Some(&[&args.key]))),
+        Some(Commands::Get(args)) => Some((Box::new(script_lib::get), Some(&args.params))),
         Some(Commands::Del(args)) => Some((
             Box::new(script_lib::del),
             Some(match args.key.clone() {
                 None => &[],
-                Some(key) => &[&key.clone()],
+                Some(key) => &[key.clone()],
             }),
         )),
         Some(Commands::Set(args)) => Some((
@@ -174,7 +174,7 @@ fn main() {
                 },
                 args.force,
             )),
-            Some(&args.value.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
+            Some(&args.value),
         )),
         None => None,
     };
