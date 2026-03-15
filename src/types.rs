@@ -13,8 +13,11 @@ pub struct ScriptEnv {
     pub is_script_once: bool,
 }
 
-pub type ScriptLibFn =
-    dyn Fn(&ScriptEnv, Option<&[String]>, &dyn DataFormat) -> (Option<String>, bool);
+pub type ScriptLibFn = dyn Fn(
+    &ScriptEnv,
+    Option<&[String]>,
+    &dyn DataFormat,
+) -> Result<Option<String>, Option<String>>;
 
 #[derive(Debug, PartialEq)]
 pub enum ValueType {

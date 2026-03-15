@@ -7,75 +7,90 @@ pub fn key_match(
     env: &ScriptEnv,
     arg: Option<&[String]>,
     _format: &dyn DataFormat,
-) -> (Option<String>, bool) {
+) -> Result<Option<String>, Option<String>> {
     if arg.is_none() {
-        return (None, false);
+        return Err(None);
     }
 
-    (None, regex_test(arg.unwrap().first().unwrap(), &env.key))
+    if regex_test(arg.unwrap().first().unwrap(), &env.key) {
+        Ok(None)
+    } else {
+        Err(None)
+    }
 }
 
 pub fn is_null(
     env: &ScriptEnv,
     _: Option<&[String]>,
     _format: &dyn DataFormat,
-) -> (Option<String>, bool) {
-    (None, env.value_type == "null")
+) -> Result<Option<String>, Option<String>> {
+    is_value_type(env, "null")
 }
 
 pub fn is_string(
     env: &ScriptEnv,
     _: Option<&[String]>,
     _format: &dyn DataFormat,
-) -> (Option<String>, bool) {
-    (None, env.value_type == "string")
+) -> Result<Option<String>, Option<String>> {
+    is_value_type(env, "string")
 }
 
 pub fn is_number(
     env: &ScriptEnv,
     _: Option<&[String]>,
     _format: &dyn DataFormat,
-) -> (Option<String>, bool) {
-    (None, env.value_type == "int" || env.value_type == "float")
+) -> Result<Option<String>, Option<String>> {
+    if env.value_type == "int" || env.value_type == "float" {
+        Ok(None)
+    } else {
+        Err(None)
+    }
 }
 
 pub fn is_bool(
     env: &ScriptEnv,
     _: Option<&[String]>,
     _format: &dyn DataFormat,
-) -> (Option<String>, bool) {
-    (None, env.value_type == "bool")
+) -> Result<Option<String>, Option<String>> {
+    is_value_type(env, "bool")
 }
 
 pub fn is_list(
     env: &ScriptEnv,
     _: Option<&[String]>,
     _format: &dyn DataFormat,
-) -> (Option<String>, bool) {
-    (None, env.value_type == "list")
+) -> Result<Option<String>, Option<String>> {
+    is_value_type(env, "list")
+}
+
+pub fn is_value_type(env: &ScriptEnv, type_check: &str) -> Result<Option<String>, Option<String>> {
+    if env.value_type == type_check {
+        Ok(None)
+    } else {
+        Err(None)
+    }
 }
 
 pub fn is_object(
     env: &ScriptEnv,
     _: Option<&[String]>,
     _format: &dyn DataFormat,
-) -> (Option<String>, bool) {
-    (None, env.value_type == "object")
+) -> Result<Option<String>, Option<String>> {
+    is_value_type(env, "object")
 }
 
 pub fn get(
     env: &ScriptEnv,
     args: Option<&[String]>,
     format: &dyn DataFormat,
-) -> (Option<String>, bool) {
+) -> Result<Option<String>, Option<String>> {
     let args = args.unwrap_or_default();
     let argsc = args.len();
 
     if env.is_script_once && argsc == 0 {
-        return (
-            Some("'get' during execute-once must receive a key.".to_string()),
-            false,
-        );
+        return Err(Some(
+            "'get' during execute-once must receive a key.".to_string(),
+        ));
     }
 
     let key = if env.is_script_once {
@@ -89,39 +104,38 @@ pub fn get(
     };
 
     if key.is_none() {
-        return (Some("Failed to parse.".to_string()), false);
+        return Err(Some("Failed to parse.".to_string()));
     }
-
-    let key = key.unwrap();
 
     let value = format
         .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
         .unwrap();
 
-    let key = match path::decode(&key) {
+    let key = match path::decode(&key.ok_or(None)?) {
         Some(key) => key,
         None => {
-            return (None, false);
+            return Err(None);
         }
     };
 
     let value = match value.get(&key) {
         Some(value) => value.clone(),
         None => {
-            return (None, false);
+            return Err(None);
         }
     };
 
-    return (
-        Some(value.to_string(|value, pretty| format.to_str(value, pretty), false)),
+    Ok(Some(value.to_string(
+        |value, pretty| format.to_str(value, pretty),
         false,
-    );
+    )))
 }
 
 pub fn set(
     value_type: ValueType,
     force: bool,
-) -> impl Fn(&ScriptEnv, Option<&[String]>, &dyn DataFormat) -> (Option<String>, bool) {
+) -> impl Fn(&ScriptEnv, Option<&[String]>, &dyn DataFormat) -> Result<Option<String>, Option<String>>
+{
     move |env: &ScriptEnv, args: Option<&[String]>, format: &dyn DataFormat| {
         let args = args.unwrap();
         if args.is_empty() {
@@ -146,7 +160,7 @@ pub fn set(
 
         let value_to_be_modified = current_value.change(&path::decode(&key).unwrap(), force);
         if value_to_be_modified.is_none() {
-            return (None, true);
+            return Ok(None);
         }
 
         *(value_to_be_modified.unwrap()) = match value_type {
@@ -162,7 +176,7 @@ pub fn set(
         )
         .unwrap();
 
-        (None, true)
+        Ok(None)
     }
 }
 
@@ -170,7 +184,7 @@ pub fn del(
     env: &ScriptEnv,
     args: Option<&[String]>,
     format: &dyn DataFormat,
-) -> (Option<String>, bool) {
+) -> Result<Option<String>, Option<String>> {
     let delete_key = match args {
         None => None,
         Some(args) => {
@@ -199,7 +213,7 @@ pub fn del(
     )
     .unwrap();
 
-    (None, true)
+    Ok(None)
 }
 
 pub fn parse_script_env() -> Option<ScriptEnv> {

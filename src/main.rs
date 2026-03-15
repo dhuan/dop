@@ -189,10 +189,12 @@ fn main() {
                     .find(|format| format.name == env.format_name)
                     .unwrap();
 
-                let (result, ok) = f(&env, param, format.format);
+                let result = f(&env, param, format.format);
+                let ok = result.is_ok();
+                let message = result.unwrap_or_else(|err| err);
 
-                if let Some(result) = result {
-                    println!("{result}");
+                if let Some(message) = message {
+                    println!("{message}");
                 }
 
                 if !ok {
