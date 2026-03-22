@@ -6,7 +6,7 @@
 
 # SCRIPT
 
-dop set $((${VALUE} * 2))
+set(VALUE * 2)
 
 # EXPECT
 
@@ -22,10 +22,9 @@ dop set $((${VALUE} * 2))
 
 # SCRIPT
 
-if [ "${KEY}" = "[1]" ]
-then
-    dop set $((${VALUE} * 2))
-fi
+if KEY == "[1]" then
+  set(VALUE * 2)
+end
 
 # EXPECT
 

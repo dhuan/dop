@@ -6,7 +6,7 @@
 
 # SCRIPT_ONCE
 
-dop set -f one.two three
+set("one.two", "three", {force = true})
 
 # EXPECT
 
@@ -22,7 +22,7 @@ dop set -f one.two three
 
 # SCRIPT_ONCE
 
-dop set -f foo.bar OK
+set("foo.bar", "OK", {force = true})
 
 # EXPECT
 

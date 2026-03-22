@@ -6,7 +6,7 @@
 
 # SCRIPT
 
-dop set $((${VALUE} * 2))
+set(get() * 2)
 
 # EXPECT
 
@@ -22,34 +22,13 @@ dop set $((${VALUE} * 2))
 
 # SCRIPT
 
-if dop is-string
-then
-    dop set BAR
-fi
+if type(VALUE) == "string" then
+    set("BAR")
+end
 
 # EXPECT
 
 {"data":{"foo":"BAR"}}
-
----
-
-# set: with --string
-
-# OPTIONS
-
--K [1]
-
-# INPUT
-
-[1,2,3]
-
-# SCRIPT
-
-dop set --string 2
-
-# EXPECT
-
-[1,"2",3]
 
 ---
 
@@ -65,7 +44,7 @@ dop set --string 2
 
 # SCRIPT
 
-dop set '{"foo":"bar"}'
+set({foo = "bar"})
 
 # EXPECT
 
@@ -85,7 +64,7 @@ dop set '{"foo":"bar"}'
 
 # SCRIPT
 
-dop set '[50,70]'
+set({50, 70})
 
 # EXPECT
 
@@ -105,7 +84,7 @@ dop set '[50,70]'
 
 # SCRIPT
 
-dop set false
+set(false)
 
 # EXPECT
 

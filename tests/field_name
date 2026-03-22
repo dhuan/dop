@@ -15,7 +15,7 @@
 
 # SCRIPT
 
-dop set $FIELD_NAME
+set(FIELD_NAME)
 
 # EXPECT
 

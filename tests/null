@@ -9,10 +9,9 @@
 
 # SCRIPT
 
-if dop is-null
-then
-    dop set 123
-fi
+if VALUE == null then
+    set(123)
+end
 
 # EXPECT
 
@@ -30,7 +29,7 @@ fi
 
 # SCRIPT
 
-dop set null
+set(null)
 
 # EXPECT
 

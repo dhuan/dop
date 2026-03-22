@@ -5,22 +5,9 @@ pub trait DataFormat {
     fn to_str(&self, value: &Value, pretty: bool) -> Option<String>;
 }
 
+#[derive(Clone)]
 pub struct ScriptEnv {
-    pub value_type: String,
     pub file_set_value: String,
     pub key: String,
-    pub format_name: String,
     pub is_script_once: bool,
-}
-
-pub type ScriptLibFn = dyn Fn(
-    &ScriptEnv,
-    Option<&[String]>,
-    &dyn DataFormat,
-) -> Result<Option<String>, Option<String>>;
-
-#[derive(Debug, PartialEq)]
-pub enum ValueType {
-    Auto,
-    String,
 }

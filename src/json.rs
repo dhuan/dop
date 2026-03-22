@@ -18,7 +18,7 @@ impl DataFormat for Json {
     }
 }
 
-fn to_json_value(value: &Value) -> Option<JsonValue> {
+pub fn to_json_value(value: &Value) -> Option<JsonValue> {
     match value {
         Value::String(value) => Some(JsonValue::from(value.to_owned())),
         Value::Int(value) => Some(JsonValue::from(*value)),
@@ -45,7 +45,7 @@ fn to_json_value(value: &Value) -> Option<JsonValue> {
     }
 }
 
-fn to_value(value: &JsonValue) -> Option<Value> {
+pub fn to_value(value: &JsonValue) -> Option<Value> {
     if value.is_array() {
         return Some(Value::List(
             value

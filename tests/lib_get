@@ -10,7 +10,7 @@
 
 # SCRIPT
 
-dop set $(dop get data.copy_me)
+set(get("data.copy_me"))
 
 # EXPECT
 
@@ -26,7 +26,7 @@ dop set $(dop get data.copy_me)
 
 # SCRIPT
 
-dop set $(($(dop get) * 2))
+set(get() * 2)
 
 # EXPECT
 

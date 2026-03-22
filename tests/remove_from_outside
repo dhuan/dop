@@ -14,10 +14,9 @@
 
 # SCRIPT
 
-if [ "${KEY}" = "foo.bar[1]" ]
-then
-    dop del foo.bar
-fi
+if KEY == "foo.bar[1]" then
+    unset("foo.bar")
+end
 
 # EXPECT
 
@@ -33,7 +32,7 @@ fi
 
 # SCRIPT
 
-dop del this.value.does.not.exist
+unset("this.value.does.not.exist")
 
 # EXPECT
 

@@ -6,10 +6,9 @@
 
 # SCRIPT
 
-if [ "${KEY}" = "foo.bar" ]
-then
-    dop set $((${VALUE} * 2))
-fi
+if KEY == "foo.bar" then
+  set(VALUE * 2)
+end
 
 # EXPECT
 

@@ -3,6 +3,7 @@ use std::io::Read;
 
 mod common;
 mod json;
+mod lua;
 mod path;
 mod script_lib;
 mod toml;
@@ -13,6 +14,8 @@ mod yaml;
 use crate::common::*;
 use crate::types::*;
 use crate::value::*;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Parser)]
 struct Cli {
@@ -148,64 +151,6 @@ fn main() {
 
     let (value, format) = value.unwrap();
 
-    let script_lib_fn: Option<(Box<ScriptLibFn>, Option<&[String]>)> = match &cli.commands {
-        Some(Commands::KeyMatch { search }) => {
-            Some((Box::new(script_lib::key_match), Some(&[search.to_owned()])))
-        }
-        Some(Commands::IsNull) => Some((Box::new(script_lib::is_null), None)),
-        Some(Commands::IsString) => Some((Box::new(script_lib::is_string), None)),
-        Some(Commands::IsNumber) => Some((Box::new(script_lib::is_number), None)),
-        Some(Commands::IsBool) => Some((Box::new(script_lib::is_bool), None)),
-        Some(Commands::IsList) => Some((Box::new(script_lib::is_list), None)),
-        Some(Commands::IsObject) => Some((Box::new(script_lib::is_object), None)),
-        Some(Commands::Get(args)) => Some((Box::new(script_lib::get), Some(&args.params))),
-        Some(Commands::Del(args)) => Some((
-            Box::new(script_lib::del),
-            Some(match args.key.clone() {
-                None => &[],
-                Some(key) => &[key.clone()],
-            }),
-        )),
-        Some(Commands::Set(args)) => Some((
-            Box::new(script_lib::set(
-                match args.convert_to_string {
-                    false => ValueType::Auto,
-                    true => ValueType::String,
-                },
-                args.force,
-            )),
-            Some(&args.value),
-        )),
-        None => None,
-    };
-    if let Some((f, param)) = script_lib_fn {
-        match script_lib::parse_script_env() {
-            None => {
-                println!("Failed to parse script env!");
-            }
-            Some(env) => {
-                let format = FORMATS
-                    .iter()
-                    .find(|format| format.name == env.format_name)
-                    .unwrap();
-
-                let result = f(&env, param, format.format);
-                let ok = result.is_ok();
-                let message = result.unwrap_or_else(|err| err);
-
-                if let Some(message) = message {
-                    println!("{message}");
-                }
-
-                if !ok {
-                    std::process::exit(1);
-                }
-            }
-        }
-
-        return;
-    }
-
     log_v(&format!("Input format identified as: {}", format.name));
 
     let output_format = match cli.args.output_format {
@@ -288,32 +233,56 @@ fn main() {
             std::process::exit(1);
         }
 
-        let (_, stdout, stderr) = exec(
-            script.as_str(),
-            &[
-                ("KEY", key_encoded),
-                (
-                    "VALUE",
-                    unquote(
-                        value
-                            .to_string(
-                                |value, pretty| output_format.format.to_str(value, pretty),
-                                false,
-                            )
-                            .as_str(),
+        let value_encoded = value.to_string(
+            |value, pretty| output_format.format.to_str(value, pretty),
+            false,
+        );
+
+        let lua_enabled = true;
+
+        let (stdout, stderr, new_value) = if !lua_enabled {
+            let (_, stdout, stderr) = exec(
+                script.as_str(),
+                &[
+                    ("KEY", key_encoded),
+                    ("VALUE", unquote(&value_encoded.clone())),
+                    ("VALUE_TYPE", &value.type_encoded()),
+                    ("VALUE_ALL", tmp_file_value.as_str()),
+                    ("VALUE_FORMAT", format.name),
+                    ("FIELD_NAME", field_name),
+                    (
+                        "IS_SCRIPT_ONCE",
+                        if script_once_mode { "true" } else { "false" },
                     ),
-                ),
-                ("VALUE_TYPE", &value.type_encoded()),
-                ("VALUE_ALL", tmp_file_value.as_str()),
-                ("VALUE_FORMAT", format.name),
-                ("FIELD_NAME", field_name),
-                (
-                    "IS_SCRIPT_ONCE",
-                    if script_once_mode { "true" } else { "false" },
-                ),
-            ],
-        )
-        .expect("command failed!");
+                ],
+            )
+            .expect("command failed!");
+
+            (stdout, stderr, None)
+        } else {
+            let env = ScriptEnv {
+                file_set_value: tmp_file_value.clone(),
+                key: key_encoded.to_string(),
+                is_script_once: script_once_mode,
+            };
+
+            let value = Rc::new(RefCell::new(value_all.clone()));
+
+            if let Err(err) = lua::handle(
+                script.as_str(),
+                &env,
+                format.format,
+                value.clone(),
+                Some(field_name),
+                key,
+                key_encoded,
+                script_once_mode,
+            ) {
+                panic!("{}", err);
+            }
+
+            (None, None, Some(value.borrow().clone()))
+        };
 
         log_v(&format!(
             "Output: {}",
@@ -335,19 +304,32 @@ fn main() {
             }
         ));
 
-        let value_modified = match file_has_been_modified(&tmp_file_value).unwrap() {
+        let was_modified = if lua_enabled {
+            true
+        } else {
+            file_has_been_modified(&tmp_file_value).unwrap()
+        };
+
+        let value_modified = match was_modified {
             false => None,
-            true => Some(
-                format
-                    .format
-                    .from_str(
-                        &String::from_utf8(
-                            std::fs::read(&tmp_file_value).expect("Failed to read tmp file."),
-                        )
-                        .unwrap(),
+            true => {
+                if lua_enabled {
+                    new_value
+                } else {
+                    Some(
+                        format
+                            .format
+                            .from_str(
+                                &String::from_utf8(
+                                    std::fs::read(&tmp_file_value)
+                                        .expect("Failed to read tmp file."),
+                                )
+                                .unwrap(),
+                            )
+                            .unwrap(),
                     )
-                    .unwrap(),
-            ),
+                }
+            }
         };
 
         if value_modified.is_none() {

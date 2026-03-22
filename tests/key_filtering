@@ -6,7 +6,7 @@
 
 # SCRIPT
 
-dop set $((${VALUE} * 2))
+set(VALUE * 2)
 
 # INPUT
 
@@ -31,7 +31,7 @@ dop set $((${VALUE} * 2))
 
 # SCRIPT
 
-dop del
+unset()
 
 # INPUT
 
@@ -55,7 +55,7 @@ dop del
 
 # SCRIPT
 
-dop set $((${VALUE} * 2))
+set(VALUE * 2)
 
 # INPUT
 

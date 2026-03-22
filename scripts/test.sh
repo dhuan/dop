@@ -1,3 +1,5 @@
+set -e
+
 get_section () {
     awk '
 BEGIN {

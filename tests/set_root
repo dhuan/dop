@@ -10,9 +10,9 @@
 
 # SCRIPT
 
-dop set two
-dop set [0] one
-dop set [2] three
+set("two")
+set("[0]", "one")
+set("[2]", "three")
 
 # EXPECT
 
@@ -32,8 +32,8 @@ dop set [2] three
 
 # SCRIPT
 
-dop set [] 4
-dop set [] 5
+set("[]", 4)
+set("[]", 5)
 
 # EXPECT
 
@@ -53,7 +53,7 @@ dop set [] 5
 
 # SCRIPT
 
-dop set foo.bar[] 3
+set("foo.bar[]", 3)
 
 # EXPECT
 
@@ -73,10 +73,9 @@ dop set foo.bar[] 3
 
 # SCRIPT
 
-dop set value_changed
-dop set foo.new_key "new value"
+set("value_changed")
+set("foo.new_key", "new value")
 
 # EXPECT
 
 {"foo":{"bar":"value_changed","new_key":"new value"}}
-

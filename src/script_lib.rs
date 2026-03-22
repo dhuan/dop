@@ -1,89 +1,19 @@
-use crate::common::*;
+use crate::lua::*;
 use crate::path;
 use crate::types::*;
 use crate::value::*;
+use mlua::{
+    Lua, LuaSerdeExt, MultiValue,
+    prelude::{LuaResult, LuaValue},
+};
+use serde_json::Value as JsonValue;
+use std::rc::Rc;
 
-pub fn key_match(
-    env: &ScriptEnv,
-    arg: Option<&[String]>,
-    _format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    if arg.is_none() {
-        return Err(None);
-    }
-
-    if regex_test(arg.unwrap().first().unwrap(), &env.key) {
-        Ok(None)
-    } else {
-        Err(None)
-    }
-}
-
-pub fn is_null(
-    env: &ScriptEnv,
-    _: Option<&[String]>,
-    _format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    is_value_type(env, "null")
-}
-
-pub fn is_string(
-    env: &ScriptEnv,
-    _: Option<&[String]>,
-    _format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    is_value_type(env, "string")
-}
-
-pub fn is_number(
-    env: &ScriptEnv,
-    _: Option<&[String]>,
-    _format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    if env.value_type == "int" || env.value_type == "float" {
-        Ok(None)
-    } else {
-        Err(None)
-    }
-}
-
-pub fn is_bool(
-    env: &ScriptEnv,
-    _: Option<&[String]>,
-    _format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    is_value_type(env, "bool")
-}
-
-pub fn is_list(
-    env: &ScriptEnv,
-    _: Option<&[String]>,
-    _format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    is_value_type(env, "list")
-}
-
-pub fn is_value_type(env: &ScriptEnv, type_check: &str) -> Result<Option<String>, Option<String>> {
-    if env.value_type == type_check {
-        Ok(None)
-    } else {
-        Err(None)
-    }
-}
-
-pub fn is_object(
-    env: &ScriptEnv,
-    _: Option<&[String]>,
-    _format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    is_value_type(env, "object")
-}
-
-pub fn get(
+fn get_internal(
     env: &ScriptEnv,
     args: Option<&[String]>,
     format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
+) -> Result<Option<Value>, Option<String>> {
     let args = args.unwrap_or_default();
     let argsc = args.len();
 
@@ -125,106 +55,132 @@ pub fn get(
         }
     };
 
-    Ok(Some(value.to_string(
-        |value, pretty| format.to_str(value, pretty),
-        false,
-    )))
+    Ok(Some(value))
 }
 
-pub fn set(
-    value_type: ValueType,
-    force: bool,
-) -> impl Fn(&ScriptEnv, Option<&[String]>, &dyn DataFormat) -> Result<Option<String>, Option<String>>
-{
-    move |env: &ScriptEnv, args: Option<&[String]>, format: &dyn DataFormat| {
-        let args = args.unwrap();
-        if args.is_empty() {
-            println!("Set expects at least one parameter.");
+pub fn is_string(
+    ctx: Rc<LibContext>,
+) -> impl Fn(&Lua, Option<String>) -> LuaResult<Option<LuaValue>> {
+    move |_, _params| {
+        LuaResult::Ok(Some(LuaValue::Boolean(matches!(
+            *ctx.value.borrow(),
+            Value::String(_)
+        ))))
+    }
+}
 
-            std::process::exit(1);
-        }
-
-        let is_changing_outside = args.len() > 1;
-        let (key, value) = match is_changing_outside {
-            true => (args[0].to_string(), args[1].to_string()),
-            false => (env.key.to_string(), args[0].to_string()),
+pub fn get(ctx: Rc<LibContext>) -> impl Fn(&Lua, Option<String>) -> LuaResult<Option<LuaValue>> {
+    move |_, params| {
+        let args = if let Some(param) = params {
+            vec![param]
+        } else {
+            vec![]
         };
 
-        if !is_changing_outside && env.is_script_once {
-            std::process::exit(1);
+        if let Ok(Some(value)) = get_internal(&ctx.env, Some(&args), ctx.format) {
+            return Ok(Some(
+                ctx.lua
+                    .to_value(&crate::json::to_json_value(&value).unwrap())
+                    .unwrap(),
+            ));
         }
-
-        let mut current_value = format
-            .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
-            .unwrap();
-
-        let value_to_be_modified = current_value.change(&path::decode(&key).unwrap(), force);
-        if value_to_be_modified.is_none() {
-            return Ok(None);
-        }
-
-        *(value_to_be_modified.unwrap()) = match value_type {
-            ValueType::String => Value::String(value.to_string()),
-            _ => format
-                .from_str(&value)
-                .unwrap_or(Value::String(value.to_string())),
-        };
-
-        std::fs::write(
-            &env.file_set_value,
-            current_value.to_string(|value, pretty| format.to_str(value, pretty), false),
-        )
-        .unwrap();
 
         Ok(None)
     }
 }
 
-pub fn del(
-    env: &ScriptEnv,
-    args: Option<&[String]>,
-    format: &dyn DataFormat,
-) -> Result<Option<String>, Option<String>> {
-    let delete_key = match args {
-        None => None,
-        Some(args) => {
-            if args.len() == 0 {
-                None
-            } else {
-                Some(args.iter().nth(0).unwrap())
-            }
-        }
-    };
+pub fn unset(ctx: Rc<LibContext>) -> impl Fn(&Lua, Option<String>) -> LuaResult<Option<LuaValue>> {
+    move |_, delete_key| {
+        let delete_key = match delete_key {
+            None => &ctx.key,
+            Some(key) => &path::decode(&key).unwrap(),
+        };
 
-    let mut current_value = format
-        .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
-        .unwrap();
+        ctx.value.borrow_mut().remove(&delete_key);
 
-    let delete_key = match delete_key.clone() {
-        None => path::decode(&env.key.clone()).unwrap(),
-        Some(key) => path::decode(key).unwrap(),
-    };
-
-    current_value.remove(&delete_key);
-
-    std::fs::write(
-        &env.file_set_value,
-        current_value.to_string(|value, pretty| format.to_str(value, pretty), false),
-    )
-    .unwrap();
-
-    Ok(None)
+        Ok(None)
+    }
 }
 
-pub fn parse_script_env() -> Option<ScriptEnv> {
-    Some(ScriptEnv {
-        value_type: std::env::var("VALUE_TYPE").ok()?,
-        file_set_value: std::env::var("VALUE_ALL").ok()?,
-        key: std::env::var("KEY").ok()?,
-        format_name: std::env::var("VALUE_FORMAT").ok()?,
-        is_script_once: std::env::var("IS_SCRIPT_ONCE")
-            .ok()
-            .map(|is_script_once| is_script_once == "true")
-            .unwrap_or(false),
-    })
+pub fn set(ctx: Rc<LibContext>) -> impl Fn(&Lua, MultiValue) -> LuaResult<()> {
+    move |_, params| {
+        let params = parse_multi_value(params);
+
+        if params.len() == 0 {
+            return Ok(());
+        }
+
+        let (key, value, force): (Option<&String>, &JsonValue, bool) = {
+            let len = params.len();
+
+            if len == 0 {
+                return Ok(());
+            }
+
+            if len == 1 {
+                (None, params.iter().nth(0).unwrap(), false)
+            } else if len == 2 {
+                if let JsonValue::String(key) = params.iter().nth(0).unwrap() {
+                    (Some(key), params.iter().nth(1).unwrap(), false)
+                } else {
+                    return Ok(());
+                }
+            } else {
+                let force = if let Some(force) = parse_set_options(params.iter().nth(2).unwrap()) {
+                    force
+                } else {
+                    false
+                };
+
+                if let JsonValue::String(key) = params.iter().nth(0).unwrap() {
+                    (Some(key), params.iter().nth(1).unwrap(), force)
+                } else {
+                    return Ok(());
+                }
+            }
+        };
+
+        let mut value_mut = ctx.value.borrow_mut();
+
+        if let None = key {
+            let value_to_change = value_mut.change(&ctx.key, force).unwrap();
+            *value_to_change = crate::json::to_value(&value.clone()).unwrap();
+        } else if let Some(key) = key {
+            let key = path::decode(key).unwrap();
+
+            if let Some(value_to_change) = value_mut.change(&key, force) {
+                *value_to_change = crate::json::to_value(&value.clone()).unwrap();
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn parse_set_options(value: &JsonValue) -> Option<bool> {
+    let options = if let JsonValue::Object(obj) = value {
+        Some(obj)
+    } else {
+        return None;
+    };
+
+    let force = if let Some(options) = options {
+        if let Some(JsonValue::Bool(b)) = options.get("force") {
+            *b
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
+    Some(force)
+}
+
+fn parse_multi_value(value: MultiValue) -> Vec<serde_json::Value> {
+    value
+        .into_vec()
+        .iter()
+        .map(|v| serde_json::to_value(v).unwrap())
+        .collect::<Vec<serde_json::Value>>()
 }

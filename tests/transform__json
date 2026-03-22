@@ -6,10 +6,9 @@
 
 # SCRIPT
 
-if [ "${KEY}" = "[1]" ]
-then
-    dop set '{"foo":"bar"}' 
-fi
+if KEY == "[1]" then
+    set({foo = "bar"})
+end
 
 # EXPECT
 
@@ -25,10 +24,9 @@ fi
 
 # SCRIPT
 
-if [ "${KEY}" = "[1]" ]
-then
-    dop set -s "${VALUE}"
-fi
+if KEY == "[1]" then
+    set("2")
+end
 
 # EXPECT
 
@@ -44,10 +42,9 @@ fi
 
 # SCRIPT
 
-if [ "${KEY}" = "[1]" ]
-then
-    dop set "${VALUE}"
-fi
+if KEY == "[1]" then
+    set(2)
+end
 
 # EXPECT
 

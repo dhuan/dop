@@ -2,7 +2,7 @@ export PATH=${PATH}:$(pwd)/target/debug
 
 TMP=$(mktemp)
 
-printf 'dop set OK' > $TMP
+printf 'set("OK")' > $TMP
 
 RESULT="$(dop -e $TMP <<EOF
 [1,2,3]

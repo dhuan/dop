@@ -212,7 +212,12 @@ impl Value {
             }
             1 => (self, &path[0]),
             _ => (
-                self.change(&path[0..(path.len() - 1)], false).unwrap(),
+                match self.change(&path[0..(path.len() - 1)], false) {
+                    None => {
+                        return;
+                    }
+                    Some(value) => value,
+                },
                 &path[path.len() - 1],
             ),
         };
@@ -267,6 +272,10 @@ impl Value {
         }
 
         while let Some(path_base) = visit.pop_front() {
+            if !value.has(&path_base) {
+                continue;
+            }
+
             let value_current = get_nested(&mut value, &path_base);
 
             if value_current.is_none() {
@@ -433,6 +442,29 @@ mod tests {
             });
 
         assert_eq!(to_json_str(&value_new, false).unwrap(), r#"{"list":[]}"#,);
+    }
+
+    #[test]
+    fn test_delete_field_and_return_change_all() {
+        let mut exec_count = 0;
+
+        let value_new = from_json(r#"{"foo":{"bar":123}}"#).traverse(
+            |_path, _key_encoded, _value, value_all| {
+                if exec_count > 0 {
+                    return TraverseAction::Leave;
+                }
+
+                exec_count += 1;
+
+                let key = crate::path::decode("foo.bar").unwrap();
+                let mut value_all = value_all.clone();
+                value_all.remove(&key);
+
+                TraverseAction::ChangeRoot(value_all)
+            },
+        );
+
+        assert_eq!(to_json_str(&value_new, false).unwrap(), r#"{"foo":{}}"#,);
     }
 
     #[test]
