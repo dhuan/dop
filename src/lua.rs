@@ -40,6 +40,7 @@ pub fn handle(
     key: &[PathEntry],
     key_encoded: &str,
     script_once_mode: bool,
+    log: Box<impl Fn(&str) + 'static>,
 ) -> Result<(), String> {
     let lua = Rc::new(Lua::new());
     let lib_ctx = Rc::new(LibContext {
@@ -50,6 +51,11 @@ pub fn handle(
         format,
     });
 
+    add_global_func(lua.clone(), "log", move |_: &Lua, value: String| {
+        log(&value);
+
+        Ok(())
+    })?;
     add_global_func(lua.clone(), "set", script_lib::set(lib_ctx.clone()))?;
     add_global_func(lua.clone(), "unset", script_lib::unset(lib_ctx.clone()))?;
     add_global_func(lua.clone(), "get", script_lib::get(lib_ctx.clone()))?;
