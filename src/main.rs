@@ -189,7 +189,7 @@ fn main() {
 
     let mut exec_count = 0;
 
-    let mut value = value.traverse(|key, key_encoded, value, value_all| {
+    let mut value = value.traverse(|key, key_encoded, _value, value_all| {
         exec_count += 1;
 
         if exec_count > 1 && script_once_mode {
@@ -233,33 +233,7 @@ fn main() {
             std::process::exit(1);
         }
 
-        let value_encoded = value.to_string(
-            |value, pretty| output_format.format.to_str(value, pretty),
-            false,
-        );
-
-        let lua_enabled = true;
-
-        let (stdout, stderr, new_value) = if !lua_enabled {
-            let (_, stdout, stderr) = exec(
-                script.as_str(),
-                &[
-                    ("KEY", key_encoded),
-                    ("VALUE", unquote(&value_encoded.clone())),
-                    ("VALUE_TYPE", &value.type_encoded()),
-                    ("VALUE_ALL", tmp_file_value.as_str()),
-                    ("VALUE_FORMAT", format.name),
-                    ("FIELD_NAME", field_name),
-                    (
-                        "IS_SCRIPT_ONCE",
-                        if script_once_mode { "true" } else { "false" },
-                    ),
-                ],
-            )
-            .expect("command failed!");
-
-            (stdout, stderr, None)
-        } else {
+        let new_value = {
             let env = ScriptEnv {
                 file_set_value: tmp_file_value.clone(),
                 key: key_encoded.to_string(),
@@ -282,71 +256,15 @@ fn main() {
                 log_v(&format!("Lua script execution failed:\n{}", err));
             }
 
-            (None, None, Some(value.borrow().clone()))
+            value.borrow().clone()
         };
-
-        log_v(&format!(
-            "Output: {}",
-            match (stdout.clone(), stderr.clone()) {
-                (None, None) => "N/A".to_string(),
-                _ => {
-                    let mut out = String::new();
-
-                    if let Some(stdout) = stdout {
-                        out.push_str(format!("\nstdout: {}", stdout).as_str());
-                    }
-
-                    if let Some(stderr) = stderr {
-                        out.push_str(format!("\nstderr: {}", stderr).as_str());
-                    }
-
-                    out
-                }
-            }
-        ));
-
-        let was_modified = if lua_enabled {
-            true
-        } else {
-            file_has_been_modified(&tmp_file_value).unwrap()
-        };
-
-        let value_modified = match was_modified {
-            false => None,
-            true => {
-                if lua_enabled {
-                    new_value
-                } else {
-                    Some(
-                        format
-                            .format
-                            .from_str(
-                                &String::from_utf8(
-                                    std::fs::read(&tmp_file_value)
-                                        .expect("Failed to read tmp file."),
-                                )
-                                .unwrap(),
-                            )
-                            .unwrap(),
-                    )
-                }
-            }
-        };
-
-        if value_modified.is_none() {
-            log_v("The value was not modified, moving on.");
-
-            return TraverseAction::Leave;
-        }
-
-        let value_modified = value_modified.unwrap();
 
         log_v(&format!(
             "Value was modified to {}",
-            format.format.to_str(&value_modified, false).unwrap(),
+            format.format.to_str(&new_value, false).unwrap(),
         ));
 
-        TraverseAction::ChangeRoot(value_modified)
+        TraverseAction::ChangeRoot(new_value)
     });
 
     log_v(&format!(
