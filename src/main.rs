@@ -278,7 +278,7 @@ fn main() {
                 key_encoded,
                 script_once_mode,
             ) {
-                panic!("{}", err);
+                log_v(&format!("Lua script execution failed:\n{}", err));
             }
 
             (None, None, Some(value.borrow().clone()))

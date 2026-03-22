@@ -1,0 +1,13 @@
+# Set: treating non-number values as numbers is handled gracefully instead of crashing
+
+# INPUT
+
+{"list":[1,2,3]}
+
+# SCRIPT
+
+set(VALUE * 2)
+
+# EXPECT
+
+{"list":[2,4,6]}
