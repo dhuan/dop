@@ -1,6 +1,5 @@
 use crate::path::*;
 use crate::script_lib;
-use crate::types::*;
 use crate::value::*;
 use mlua::{LuaSerdeExt, prelude::*};
 use std::cell::RefCell;
@@ -25,14 +24,14 @@ where
 
 pub struct LibContext {
     pub lua: Rc<Lua>,
-    pub env: Rc<ScriptEnv>,
     pub value: Rc<RefCell<Value>>,
     pub key: Vec<PathEntry>,
+    pub key_encoded: String,
+    pub script_once_mode: bool,
 }
 
 pub fn handle(
     script: &str,
-    env: &ScriptEnv,
     value: Rc<RefCell<Value>>,
     field_name: Option<&str>,
     key: &[PathEntry],
@@ -43,9 +42,10 @@ pub fn handle(
     let lua = Rc::new(Lua::new());
     let lib_ctx = Rc::new(LibContext {
         lua: lua.clone(),
-        env: Rc::new(env.clone()),
         value: value.clone(),
         key: key.to_vec(),
+        key_encoded: key_encoded.to_owned(),
+        script_once_mode,
     });
 
     add_global_func(lua.clone(), "log", move |_: &Lua, value: String| {

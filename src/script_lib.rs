@@ -15,16 +15,16 @@ fn get_internal(
     let args = args.unwrap_or_default();
     let argsc = args.len();
 
-    if ctx.env.is_script_once && argsc == 0 {
+    if ctx.script_once_mode && argsc == 0 {
         return Err(Some(
             "'get' during execute-once must receive a key.".to_string(),
         ));
     }
 
-    let key = if ctx.env.is_script_once {
+    let key = if ctx.script_once_mode {
         Some(args.iter().nth(0).unwrap().to_owned())
     } else if argsc == 0 {
-        Some(ctx.env.key.clone())
+        Some(ctx.key_encoded.clone())
     } else if args.len() > 0 {
         Some(args.iter().nth(0).unwrap().to_owned())
     } else {

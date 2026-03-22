@@ -223,16 +223,10 @@ fn main() {
         }
 
         let new_value = {
-            let env = ScriptEnv {
-                key: key_encoded.to_string(),
-                is_script_once: script_once_mode,
-            };
-
             let value = Rc::new(RefCell::new(value_all.clone()));
 
             if let Err(err) = lua::handle(
                 script.as_str(),
-                &env,
                 value.clone(),
                 Some(field_name),
                 key,
