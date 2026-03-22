@@ -169,8 +169,6 @@ fn main() {
             }),
     };
 
-    let tmp_file_value = mktemp().expect("failed to create tmp file!");
-
     let (script, script_once_mode) = if cli.args.script.is_some() {
         (cli.args.script, false)
     } else if cli.args.script_once.is_some() {
@@ -224,18 +222,8 @@ fn main() {
             return TraverseAction::Leave;
         }
 
-        if let Err(err) = std::fs::write(
-            &tmp_file_value,
-            format.format.to_str(value_all, true).unwrap(),
-        ) {
-            eprintln!("Failed to write to temporary files: {}", err);
-
-            std::process::exit(1);
-        }
-
         let new_value = {
             let env = ScriptEnv {
-                file_set_value: tmp_file_value.clone(),
                 key: key_encoded.to_string(),
                 is_script_once: script_once_mode,
             };
@@ -245,7 +233,6 @@ fn main() {
             if let Err(err) = lua::handle(
                 script.as_str(),
                 &env,
-                format.format,
                 value.clone(),
                 Some(field_name),
                 key,

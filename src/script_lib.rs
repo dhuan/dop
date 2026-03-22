@@ -1,6 +1,5 @@
 use crate::lua::*;
 use crate::path;
-use crate::types::*;
 use crate::value::*;
 use mlua::{
     Lua, LuaSerdeExt, MultiValue,
@@ -10,23 +9,22 @@ use serde_json::Value as JsonValue;
 use std::rc::Rc;
 
 fn get_internal(
-    env: &ScriptEnv,
+    ctx: Rc<LibContext>,
     args: Option<&[String]>,
-    format: &dyn DataFormat,
 ) -> Result<Option<Value>, Option<String>> {
     let args = args.unwrap_or_default();
     let argsc = args.len();
 
-    if env.is_script_once && argsc == 0 {
+    if ctx.env.is_script_once && argsc == 0 {
         return Err(Some(
             "'get' during execute-once must receive a key.".to_string(),
         ));
     }
 
-    let key = if env.is_script_once {
+    let key = if ctx.env.is_script_once {
         Some(args.iter().nth(0).unwrap().to_owned())
     } else if argsc == 0 {
-        Some(env.key.clone())
+        Some(ctx.env.key.clone())
     } else if args.len() > 0 {
         Some(args.iter().nth(0).unwrap().to_owned())
     } else {
@@ -37,16 +35,14 @@ fn get_internal(
         return Err(Some("Failed to parse.".to_string()));
     }
 
-    let value = format
-        .from_str(&std::fs::read_to_string(&env.file_set_value).unwrap())
-        .unwrap();
-
     let key = match path::decode(&key.ok_or(None)?) {
         Some(key) => key,
         None => {
             return Err(None);
         }
     };
+
+    let value = ctx.value.borrow().clone();
 
     let value = match value.get(&key) {
         Some(value) => value.clone(),
@@ -77,7 +73,7 @@ pub fn get(ctx: Rc<LibContext>) -> impl Fn(&Lua, Option<String>) -> LuaResult<Op
             vec![]
         };
 
-        if let Ok(Some(value)) = get_internal(&ctx.env, Some(&args), ctx.format) {
+        if let Ok(Some(value)) = get_internal(ctx.clone(), Some(&args)) {
             return Ok(Some(
                 ctx.lua
                     .to_value(&crate::json::to_json_value(&value).unwrap())

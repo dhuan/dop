@@ -7,7 +7,6 @@ pub trait DataFormat {
 
 #[derive(Clone)]
 pub struct ScriptEnv {
-    pub file_set_value: String,
     pub key: String,
     pub is_script_once: bool,
 }

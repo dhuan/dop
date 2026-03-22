@@ -28,13 +28,11 @@ pub struct LibContext {
     pub env: Rc<ScriptEnv>,
     pub value: Rc<RefCell<Value>>,
     pub key: Vec<PathEntry>,
-    pub format: &'static dyn DataFormat,
 }
 
 pub fn handle(
     script: &str,
     env: &ScriptEnv,
-    format: &'static dyn DataFormat,
     value: Rc<RefCell<Value>>,
     field_name: Option<&str>,
     key: &[PathEntry],
@@ -48,7 +46,6 @@ pub fn handle(
         env: Rc::new(env.clone()),
         value: value.clone(),
         key: key.to_vec(),
-        format,
     });
 
     add_global_func(lua.clone(), "log", move |_: &Lua, value: String| {
