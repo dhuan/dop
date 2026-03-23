@@ -56,11 +56,7 @@ pub fn handle(
     add_global_func(lua.clone(), "set", script_lib::set(lib_ctx.clone()))?;
     add_global_func(lua.clone(), "unset", script_lib::unset(lib_ctx.clone()))?;
     add_global_func(lua.clone(), "get", script_lib::get(lib_ctx.clone()))?;
-    add_global_func(
-        lua.clone(),
-        "is_string",
-        script_lib::is_string(lib_ctx.clone()),
-    )?;
+    add_global_func(lua.clone(), "exec", script_lib::exec(lib_ctx.clone()))?;
 
     lua.globals()
         .set("FIELD_NAME", field_name.unwrap_or_default())

@@ -1,0 +1,29 @@
+# execute command and assign value
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+set(tonumber(exec(string.format("echo $((%d * 2))", VALUE)).output))
+
+# EXPECT
+
+[2,4,6]
+
+---
+
+# execute with pipes
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT
+
+set(tonumber(exec(string.format("echo '%d * 2' | bc", VALUE)).output))
+
+# EXPECT
+
+[2,4,6]

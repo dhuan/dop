@@ -1,3 +1,4 @@
+use crate::common::*;
 use crate::lua::*;
 use crate::path;
 use crate::value::*;
@@ -54,17 +55,6 @@ fn get_internal(
     Ok(Some(value))
 }
 
-pub fn is_string(
-    ctx: Rc<LibContext>,
-) -> impl Fn(&Lua, Option<String>) -> LuaResult<Option<LuaValue>> {
-    move |_, _params| {
-        LuaResult::Ok(Some(LuaValue::Boolean(matches!(
-            *ctx.value.borrow(),
-            Value::String(_)
-        ))))
-    }
-}
-
 pub fn get(ctx: Rc<LibContext>) -> impl Fn(&Lua, Option<String>) -> LuaResult<Option<LuaValue>> {
     move |_, params| {
         let args = if let Some(param) = params {
@@ -82,6 +72,32 @@ pub fn get(ctx: Rc<LibContext>) -> impl Fn(&Lua, Option<String>) -> LuaResult<Op
         }
 
         Ok(None)
+    }
+}
+
+pub fn exec(ctx: Rc<LibContext>) -> impl Fn(&Lua, String) -> LuaResult<Option<LuaValue>> {
+    move |lua, command| {
+        let command_result = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(command)
+            .output()?;
+
+        let output = ctx
+            .lua
+            .to_value(
+                &String::from_utf8(command_result.stdout)
+                    .unwrap()
+                    .strip_suffix("\n"),
+            )?
+            .to_string()?;
+
+        let exec_result = lua
+            .to_value(
+                &lua.create_table_from(map_from_list(&vec![("output".to_string(), output)]))
+                    .unwrap(),
+            )?;
+
+        Ok(Some(exec_result))
     }
 }
 
