@@ -91,11 +91,9 @@ pub fn exec(ctx: Rc<LibContext>) -> impl Fn(&Lua, String) -> LuaResult<Option<Lu
             )?
             .to_string()?;
 
-        let exec_result = lua
-            .to_value(
-                &lua.create_table_from(map_from_list(&vec![("output".to_string(), output)]))
-                    .unwrap(),
-            )?;
+        let exec_result = lua.to_value(
+            &lua.create_table_from(map_from_list(&vec![("output".to_string(), output)]))?,
+        )?;
 
         Ok(Some(exec_result))
     }
