@@ -27,3 +27,19 @@ set(tonumber(exec(string.format("echo '%d * 2' | bc", VALUE)).output))
 # EXPECT
 
 [2,4,6]
+
+---
+
+# execute and inspect the exit status code
+
+# INPUT
+
+["ls", "ls this_folder_does_not_exist"]
+
+# SCRIPT
+
+set(exec(VALUE).status == 0)
+
+# EXPECT
+
+[true,false]
