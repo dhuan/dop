@@ -28,11 +28,11 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary_ext: ""
           - name: macos-x86_64
-            runner: macos-13
+            runner: macos-15-intel
             target: x86_64-apple-darwin
             binary_ext: ""
           - name: macos-aarch64
-            runner: macos-14
+            runner: macos-15
             target: aarch64-apple-darwin
             binary_ext: ""
           - name: windows-x86_64
