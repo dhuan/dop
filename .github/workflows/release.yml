@@ -51,8 +51,27 @@ jobs:
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Install UPX on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y upx-ucl
+
+      - name: Install UPX on macOS
+        if: runner.os == 'macOS'
+        run: brew install upx
+
+      - name: Install UPX on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install upx -y
+
       - name: Build release binary
         run: cargo build --locked --release --target ${{ matrix.target }} --bin ${{ env.BINARY_NAME }}
+
+      - name: Compress binary with UPX
+        shell: bash
+        run: upx --best --lzma "target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}${{ matrix.binary_ext }}"
 
       - name: Stage binary artifact
         shell: bash
