@@ -224,6 +224,10 @@ impl Value {
 
         match (parent, key) {
             (Value::List(list), PathEntry::Index(index)) => {
+                if *index > (list.len() - 1) {
+                    return;
+                }
+
                 list.remove(*index);
             }
             (Value::Object(obj), PathEntry::Field(field_name)) => {

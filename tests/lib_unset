@@ -1,0 +1,14 @@
+# unset: trying to remove out-of-range array elements does not crash
+
+# INPUT
+
+[1,2,3]
+
+# SCRIPT_ONCE
+
+unset("[10]")
+unset("[1]")
+
+# EXPECT
+
+[1,3]
