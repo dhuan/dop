@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use std::io::Read;
 
 mod common;
@@ -19,25 +19,8 @@ use std::rc::Rc;
 
 #[derive(Parser)]
 struct Cli {
-    #[command(subcommand)]
-    commands: Option<Commands>,
-
     #[command(flatten)]
     args: Args,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    Set(SetArgs),
-    Get(GetArgs),
-    Del(DelArgs),
-    KeyMatch { search: String },
-    IsString,
-    IsNumber,
-    IsBool,
-    IsList,
-    IsObject,
-    IsNull,
 }
 
 #[derive(Clone, clap::Args)]
