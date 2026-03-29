@@ -43,10 +43,10 @@ fn to_value(value: &TomlValue) -> Option<Value> {
     }
 
     if value.is_table() {
-        let mut obj: HashMap<String, Value> = std::collections::HashMap::new();
+        let mut obj: HashMap<Key, Value> = std::collections::HashMap::new();
 
         for (key, value) in value.as_table().unwrap().iter() {
-            obj.insert(key.clone(), to_value(value).unwrap());
+            obj.insert(to_key(key), to_value(value).unwrap());
         }
 
         return Some(Value::Object(obj));
@@ -71,7 +71,7 @@ fn to_toml_value(value: &Value) -> Option<TomlValue> {
 
             for (key, value) in value {
                 obj.insert(
-                    key.to_owned(),
+                    key_to_string(key),
                     to_toml_value(value).unwrap_or(TomlValue::from("null")),
                 );
             }

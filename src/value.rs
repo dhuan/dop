@@ -8,8 +8,23 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     List(Vec<Value>),
-    Object(HashMap<String, Value>),
+    Object(HashMap<Key, Value>),
     Null,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Key {
+    String(String),
+    Int(i64),
+}
+
+impl Key {
+    pub fn to_string(&self) -> String {
+        match self {
+            Key::String(s) => s.to_owned(),
+            Key::Int(num) => num.to_string(),
+        }
+    }
 }
 
 impl Value {
@@ -28,7 +43,9 @@ impl Value {
                     0 => None,
                     _ => list.get(index),
                 },
-                (Value::Object(obj), PathEntry::Field(field_name)) => obj.get(&field_name),
+                (Value::Object(obj), PathEntry::Field(field_name)) => {
+                    try_get_from_value_object(obj, &field_name)
+                }
                 _ => None,
             };
         }
@@ -38,10 +55,12 @@ impl Value {
                 None => None,
                 Some(value) => value.get(&path[1..]),
             },
-            (Value::Object(obj), PathEntry::Field(field_name)) => match obj.get(&field_name) {
-                None => None,
-                Some(value) => value.get(&path[1..]),
-            },
+            (Value::Object(obj), PathEntry::Field(field_name)) => {
+                match try_get_from_value_object(obj, &field_name) {
+                    None => None,
+                    Some(value) => value.get(&path[1..]),
+                }
+            }
             _ => None,
         }
     }
@@ -62,7 +81,7 @@ impl Value {
             if i == (path.len() - 1) {
                 match (value, &path[i]) {
                     (Value::Object(obj), PathEntry::Field(field_name)) => {
-                        obj.insert(field_name.clone(), new_value.clone());
+                        obj.insert(Key::String(field_name.clone()), new_value.clone());
 
                         return Some(path.to_vec());
                     }
@@ -83,7 +102,7 @@ impl Value {
                 value = match (value, &path[i]) {
                     (Value::Object(obj), PathEntry::Field(field_name)) => {
                         let should_replace = force
-                            && match obj.get(field_name) {
+                            && match try_get_from_value_object(obj, field_name) {
                                 None => true,
                                 Some(existing) => !matches!(
                                     (existing, &path[i + 1]),
@@ -95,7 +114,7 @@ impl Value {
 
                         if should_replace {
                             obj.insert(
-                                field_name.to_string(),
+                                Key::String(field_name.to_string()),
                                 match path[i + 1] {
                                     PathEntry::Field(_) => Value::Object(HashMap::new()),
                                     _ => Value::List(vec![]),
@@ -103,7 +122,7 @@ impl Value {
                             );
                         }
 
-                        obj.get_mut(field_name)?
+                        try_get_from_value_object_mut(obj, field_name)?
                     }
                     (Value::List(list), PathEntry::Index(index)) => list.get_mut(*index)?,
                     (Value::List(list), PathEntry::IndexNew) => {
@@ -145,7 +164,9 @@ impl Value {
         for visit_item in path {
             current = match (current, visit_item) {
                 (Value::List(list), PathEntry::Index(index)) => list.get_mut(*index)?,
-                (Value::Object(obj), PathEntry::Field(field_name)) => obj.get_mut(field_name)?,
+                (Value::Object(obj), PathEntry::Field(field_name)) => {
+                    try_get_from_value_object_mut(obj, field_name)?
+                }
                 _ => {
                     return None;
                 }
@@ -231,7 +252,7 @@ impl Value {
                 list.remove(*index);
             }
             (Value::Object(obj), PathEntry::Field(field_name)) => {
-                obj.remove(field_name);
+                remove(obj, field_name);
             }
             _ => {}
         }
@@ -362,7 +383,7 @@ fn get_keys(value: &Value) -> Option<Vec<PathEntry>> {
     if let Value::Object(obj) = value {
         return Some(
             obj.keys()
-                .map(|key| PathEntry::Field(key.to_owned()))
+                .map(|key| PathEntry::Field(key.to_string()))
                 .collect(),
         );
     }
@@ -669,7 +690,7 @@ mod tests {
 
                 for (key, value) in value {
                     obj.insert(
-                        key.to_owned(),
+                        key.to_string(),
                         to_json_value(value).unwrap_or(JsonValue::Null),
                     );
                 }
@@ -690,4 +711,59 @@ fn path_parent(path: &[PathEntry]) -> Option<Vec<PathEntry>> {
     }
 
     Some(path[0..(path.len() - 1)].to_vec())
+}
+
+pub fn try_get_from_value_object<'a>(
+    obj: &'a HashMap<Key, Value>,
+    field_name: &str,
+) -> Option<&'a Value> {
+    if let Some(value) = obj.get(&Key::String(field_name.to_string())) {
+        Some(value)
+    } else if let Ok(key_num) = field_name.parse::<i64>() {
+        if let Some(value) = obj.get(&Key::Int(key_num)) {
+            Some(value)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+fn try_get_from_value_object_mut<'a>(
+    obj: &'a mut HashMap<Key, Value>,
+    field_name: &str,
+) -> Option<&'a mut Value> {
+    let key = if let Ok(key_num) = field_name.parse::<i64>() {
+        Key::Int(key_num)
+    } else {
+        Key::String(field_name.to_owned())
+    };
+
+    obj.get_mut(&key)
+}
+
+fn remove<'a>(obj: &mut HashMap<Key, Value>, field_name: &str) {
+    let key = if let Ok(key_num) = field_name.parse::<i64>() {
+        Key::Int(key_num)
+    } else {
+        Key::String(field_name.to_owned())
+    };
+
+    obj.remove(&key);
+}
+
+pub fn to_key(key: &str) -> Key {
+    if let Ok(key_num) = key.parse::<i64>() {
+        Key::Int(key_num)
+    } else {
+        Key::String(key.to_owned())
+    }
+}
+
+pub fn key_to_string(key: &Key) -> String {
+    match key {
+        Key::String(s) => s.to_owned(),
+        Key::Int(num) => num.to_string(),
+    }
 }

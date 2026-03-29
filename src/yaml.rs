@@ -32,13 +32,36 @@ fn to_yaml_value(value: &Value) -> Option<YamlValue> {
         Value::Object(value) => {
             let mut obj = serde_yaml::Mapping::new();
 
-            let mut keys = value.keys().collect::<Vec<&String>>();
-            keys.sort();
+            let mut keys = value
+                .keys()
+                .map(|key| {
+                    to_yaml_value(
+                        &(match key.clone() {
+                            Key::String(s) => Value::String(s),
+                            Key::Int(num) => Value::Int(num),
+                        }),
+                    )
+                    .unwrap()
+                })
+                .collect::<Vec<YamlValue>>();
+
+            keys.sort_by(|a, b| {
+                serde_yaml::to_string(a)
+                    .unwrap()
+                    .cmp(&serde_yaml::to_string(b).unwrap())
+            });
 
             for key in keys {
+                let value =
+                    to_yaml_value(value.get(&yaml_key_to_value_key(&key)).unwrap()).unwrap();
+
                 obj.insert(
-                    serde_yaml::Value::from(key.to_owned()),
-                    to_yaml_value(value.get(key).unwrap()).unwrap_or(YamlValue::Null),
+                    key,
+                    value,
+                    /*
+                    to_yaml_value(try_get_from_value_object(value, &key).unwrap())
+                        .unwrap_or(YamlValue::Null),
+                    */
                 );
             }
 
@@ -81,14 +104,22 @@ fn to_value(value: &YamlValue) -> Option<Value> {
     }
 
     if value.is_mapping() {
-        let mut obj: HashMap<String, Value> = std::collections::HashMap::new();
+        let mut obj: HashMap<Key, Value> = std::collections::HashMap::new();
 
         for (key, value) in value.as_mapping().unwrap().iter() {
-            obj.insert(key.as_str().unwrap().to_owned(), to_value(value).unwrap());
+            obj.insert(yaml_key_to_value_key(key), to_value(value).unwrap());
         }
 
         return Some(Value::Object(obj));
     }
 
     None
+}
+
+fn yaml_key_to_value_key(key: &YamlValue) -> Key {
+    match key {
+        YamlValue::String(s) => Key::String(s.to_owned()),
+        YamlValue::Number(num) => Key::Int(num.as_i64().unwrap()),
+        _ => panic!("Not supported yet."),
+    }
 }

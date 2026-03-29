@@ -1,0 +1,13 @@
+# Keys as numbers shall not panic
+
+# INPUT
+
+1: 1
+
+# SCRIPT
+
+set(VALUE * 2)
+
+# EXPECT
+
+1: 2
