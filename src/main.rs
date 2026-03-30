@@ -206,7 +206,7 @@ fn main() {
                     Some(field_name),
                     key,
                     key_encoded,
-                    script_once_mode,
+                    false,
                     Box::new(log_v),
                 ) {
                     log_v(&format!("Lua script execution failed:\n{}", err));
