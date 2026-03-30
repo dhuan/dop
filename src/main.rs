@@ -209,7 +209,7 @@ fn main() {
                     false,
                     Box::new(log_v),
                 ) {
-                    log_v(&format!("Lua script execution failed:\n{}", err));
+                    on_lua_failed(&err, log_v);
                 }
 
                 value.borrow().clone()
@@ -227,7 +227,7 @@ fn main() {
     {
         if let Err(err) = lua::handle(&script, value.clone(), None, &[], "", true, Box::new(log_v))
         {
-            log_v(&format!("Lua script execution failed:\n{}", err));
+            on_lua_failed(&err, log_v);
         }
     }
 
@@ -269,4 +269,8 @@ fn guess_value(stdin: &str) -> Option<(Value, &'static FormatConfig)> {
     }
 
     None
+}
+
+fn on_lua_failed(err: &str, log_v: impl Fn(&str)) {
+    log_v(&format!("Lua script execution failed:\n{}", err));
 }
