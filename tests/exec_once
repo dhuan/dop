@@ -32,3 +32,20 @@ set("foo", "bar")
 # EXPECT
 
 {"foo":"bar"}
+
+---
+
+# Exec once with empty array
+
+# INPUT
+
+[]
+
+# SCRIPT_ONCE
+
+set("[]", 1)
+set("[]", 2)
+
+# EXPECT
+
+[1,2]
