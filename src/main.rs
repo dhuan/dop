@@ -132,7 +132,7 @@ fn main() {
         std::process::exit(1);
     }
 
-    let (value, format) = value.unwrap();
+    let (mut value, format) = value.unwrap();
 
     log_v(&format!("Input format identified as: {}", format.name));
 
@@ -170,66 +170,62 @@ fn main() {
 
     let mut exec_count = 0;
 
-    let mut value = value.traverse(|key, key_encoded, _value, value_all| {
-        exec_count += 1;
+    if let Some(script) = script {
+        value = value.traverse(|key, key_encoded, _value, value_all| {
+            exec_count += 1;
 
-        if exec_count > 1 && script_once_mode {
-            return TraverseAction::Leave;
-        }
-
-        let field_name = match key.last().unwrap() {
-            crate::path::PathEntry::Field(field_name) => field_name,
-            crate::path::PathEntry::Index(index) => &format!("{}", index),
-            _ => panic!("Not accepted!"),
-        };
-
-        if script.is_none() {
-            return TraverseAction::Leave;
-        }
-
-        let script = script.clone().unwrap();
-
-        log_v(&format!("Processing key '{}'.", key_encoded));
-
-        if let Some(key_filter_regex) = cli.args.key_filter_regex.clone()
-            && !regex_test(&key_filter_regex, key_encoded)
-        {
-            log_v("Key Filter Regex did not pass, skipping.");
-            return TraverseAction::Leave;
-        }
-
-        if let Some(key_filter_equal) = cli.args.key_filter_equal.clone()
-            && key_filter_equal != key_encoded
-        {
-            log_v("Key Filter did not pass, skipping.");
-            return TraverseAction::Leave;
-        }
-
-        let new_value = {
-            let value = Rc::new(RefCell::new(value_all.clone()));
-
-            if let Err(err) = lua::handle(
-                script.as_str(),
-                value.clone(),
-                Some(field_name),
-                key,
-                key_encoded,
-                script_once_mode,
-                Box::new(log_v),
-            ) {
-                log_v(&format!("Lua script execution failed:\n{}", err));
+            if exec_count > 1 && script_once_mode {
+                return TraverseAction::Leave;
             }
 
-            value.borrow().clone()
-        };
+            let field_name = match key.last().unwrap() {
+                crate::path::PathEntry::Field(field_name) => field_name,
+                crate::path::PathEntry::Index(index) => &format!("{}", index),
+                _ => panic!("Not accepted!"),
+            };
 
-        log_v(&format!(
-            "Value was modified to {}",
-            format.format.to_str(&new_value, false).unwrap(),
-        ));
+            log_v(&format!("Processing key '{}'.", key_encoded));
 
-        TraverseAction::ChangeRoot(new_value)
-    });
+            if let Some(key_filter_regex) = cli.args.key_filter_regex.clone()
+                && !regex_test(&key_filter_regex, key_encoded)
+            {
+                log_v("Key Filter Regex did not pass, skipping.");
+                return TraverseAction::Leave;
+            }
+
+            if let Some(key_filter_equal) = cli.args.key_filter_equal.clone()
+                && key_filter_equal != key_encoded
+            {
+                log_v("Key Filter did not pass, skipping.");
+                return TraverseAction::Leave;
+            }
+
+            let new_value = {
+                let value = Rc::new(RefCell::new(value_all.clone()));
+
+                if let Err(err) = lua::handle(
+                    &script,
+                    value.clone(),
+                    Some(field_name),
+                    key,
+                    key_encoded,
+                    script_once_mode,
+                    Box::new(log_v),
+                ) {
+                    log_v(&format!("Lua script execution failed:\n{}", err));
+                }
+
+                value.borrow().clone()
+            };
+
+            log_v(&format!(
+                "Value was modified to {}",
+                format.format.to_str(&new_value, false).unwrap(),
+            ));
+
+            TraverseAction::ChangeRoot(new_value)
+        });
+    }
 
     log_v(&format!(
         "Execution finished. Printing out in '{}' format.",
