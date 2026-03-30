@@ -132,7 +132,8 @@ fn main() {
         std::process::exit(1);
     }
 
-    let (mut value, format) = value.unwrap();
+    let (value, format) = value.unwrap();
+    let value = Rc::new(RefCell::new(value));
 
     log_v(&format!("Input format identified as: {}", format.name));
 
@@ -171,7 +172,9 @@ fn main() {
     if let Some(script) = script.clone()
         && !script_once_mode
     {
-        value = value.traverse(|key, key_encoded, _value, value_all| {
+        let mut value = value.borrow_mut();
+
+        *value = value.traverse(|key, key_encoded, _value, value_all| {
             let field_name = match key.last().unwrap() {
                 crate::path::PathEntry::Field(field_name) => field_name,
                 crate::path::PathEntry::Index(index) => &format!("{}", index),
@@ -222,27 +225,18 @@ fn main() {
     } else if let Some(script) = script
         && script_once_mode
     {
-        let value2 = Rc::new(RefCell::new(value.clone()));
-
-        if let Err(err) = lua::handle(
-            &script,
-            value2.clone(),
-            None,
-            &[],
-            "",
-            true,
-            Box::new(log_v),
-        ) {
+        if let Err(err) = lua::handle(&script, value.clone(), None, &[], "", true, Box::new(log_v))
+        {
             log_v(&format!("Lua script execution failed:\n{}", err));
         }
-
-        value = value2.borrow().clone();
     }
 
     log_v(&format!(
         "Execution finished. Printing out in '{}' format.",
         output_format.name
     ));
+
+    let mut value = value.borrow_mut();
 
     if let Some(query) = cli.args.query {
         if let Some(value) = value.change(&crate::path::decode(&query).unwrap(), false) {
