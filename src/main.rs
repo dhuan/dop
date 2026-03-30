@@ -168,16 +168,10 @@ fn main() {
         }
     });
 
-    let mut exec_count = 0;
-
-    if let Some(script) = script {
+    if let Some(script) = script.clone()
+        && !script_once_mode
+    {
         value = value.traverse(|key, key_encoded, _value, value_all| {
-            exec_count += 1;
-
-            if exec_count > 1 && script_once_mode {
-                return TraverseAction::Leave;
-            }
-
             let field_name = match key.last().unwrap() {
                 crate::path::PathEntry::Field(field_name) => field_name,
                 crate::path::PathEntry::Index(index) => &format!("{}", index),
@@ -225,6 +219,24 @@ fn main() {
 
             TraverseAction::ChangeRoot(new_value)
         });
+    } else if let Some(script) = script
+        && script_once_mode
+    {
+        let value2 = Rc::new(RefCell::new(value.clone()));
+
+        if let Err(err) = lua::handle(
+            &script,
+            value2.clone(),
+            None,
+            &[],
+            "",
+            true,
+            Box::new(log_v),
+        ) {
+            log_v(&format!("Lua script execution failed:\n{}", err));
+        }
+
+        value = value2.borrow().clone();
     }
 
     log_v(&format!(
