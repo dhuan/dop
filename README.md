@@ -33,6 +33,18 @@ $ echo '[1,2,3]' | dop -e 'set(VALUE * 2)'
 # [2,4,6]
 ```
 
+### Adding new fields
+
+```
+echo '{"my_list":[1,2,3]}' | dop -E '
+set("my_list[]", 4)
+set("foo", "bar")
+'
+
+# Prints out:
+# {"foo":"bar","my_list":[1,2,3,4]}
+```
+
 ### Handling YAML
 
 ```
