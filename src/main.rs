@@ -133,6 +133,7 @@ fn main() {
     }
 
     let (value, format) = value.unwrap();
+    let value = Rc::new(RefCell::new(value));
 
     log_v(&format!("Input format identified as: {}", format.name));
 
@@ -168,73 +169,74 @@ fn main() {
         }
     });
 
-    let mut exec_count = 0;
+    if let Some(script) = script.clone()
+        && !script_once_mode
+    {
+        let mut value = value.borrow_mut();
 
-    let mut value = value.traverse(|key, key_encoded, _value, value_all| {
-        exec_count += 1;
+        *value = value.traverse(|key, key_encoded, _value, value_all| {
+            let field_name = match key.last().unwrap() {
+                crate::path::PathEntry::Field(field_name) => field_name,
+                crate::path::PathEntry::Index(index) => &format!("{}", index),
+                _ => panic!("Not accepted!"),
+            };
 
-        if exec_count > 1 && script_once_mode {
-            return TraverseAction::Leave;
-        }
+            log_v(&format!("Processing key '{}'.", key_encoded));
 
-        let field_name = match key.last().unwrap() {
-            crate::path::PathEntry::Field(field_name) => field_name,
-            crate::path::PathEntry::Index(index) => &format!("{}", index),
-            _ => panic!("Not accepted!"),
-        };
-
-        if script.is_none() {
-            return TraverseAction::Leave;
-        }
-
-        let script = script.clone().unwrap();
-
-        log_v(&format!("Processing key '{}'.", key_encoded));
-
-        if let Some(key_filter_regex) = cli.args.key_filter_regex.clone()
-            && !regex_test(&key_filter_regex, key_encoded)
-        {
-            log_v("Key Filter Regex did not pass, skipping.");
-            return TraverseAction::Leave;
-        }
-
-        if let Some(key_filter_equal) = cli.args.key_filter_equal.clone()
-            && key_filter_equal != key_encoded
-        {
-            log_v("Key Filter did not pass, skipping.");
-            return TraverseAction::Leave;
-        }
-
-        let new_value = {
-            let value = Rc::new(RefCell::new(value_all.clone()));
-
-            if let Err(err) = lua::handle(
-                script.as_str(),
-                value.clone(),
-                Some(field_name),
-                key,
-                key_encoded,
-                script_once_mode,
-                Box::new(log_v),
-            ) {
-                log_v(&format!("Lua script execution failed:\n{}", err));
+            if let Some(key_filter_regex) = cli.args.key_filter_regex.clone()
+                && !regex_test(&key_filter_regex, key_encoded)
+            {
+                log_v("Key Filter Regex did not pass, skipping.");
+                return TraverseAction::Leave;
             }
 
-            value.borrow().clone()
-        };
+            if let Some(key_filter_equal) = cli.args.key_filter_equal.clone()
+                && key_filter_equal != key_encoded
+            {
+                log_v("Key Filter did not pass, skipping.");
+                return TraverseAction::Leave;
+            }
 
-        log_v(&format!(
-            "Value was modified to {}",
-            format.format.to_str(&new_value, false).unwrap(),
-        ));
+            let new_value = {
+                let value = Rc::new(RefCell::new(value_all.clone()));
 
-        TraverseAction::ChangeRoot(new_value)
-    });
+                if let Err(err) = lua::handle(
+                    &script,
+                    value.clone(),
+                    Some(field_name),
+                    key,
+                    key_encoded,
+                    false,
+                    Box::new(log_v),
+                ) {
+                    on_lua_failed(&err, log_v);
+                }
+
+                value.borrow().clone()
+            };
+
+            log_v(&format!(
+                "Value was modified to {}",
+                format.format.to_str(&new_value, false).unwrap(),
+            ));
+
+            TraverseAction::ChangeRoot(new_value)
+        });
+    } else if let Some(script) = script
+        && script_once_mode
+    {
+        if let Err(err) = lua::handle(&script, value.clone(), None, &[], "", true, Box::new(log_v))
+        {
+            on_lua_failed(&err, log_v);
+        }
+    }
 
     log_v(&format!(
         "Execution finished. Printing out in '{}' format.",
         output_format.name
     ));
+
+    let mut value = value.borrow_mut();
 
     if let Some(query) = cli.args.query {
         if let Some(value) = value.change(&crate::path::decode(&query).unwrap(), false) {
@@ -267,4 +269,8 @@ fn guess_value(stdin: &str) -> Option<(Value, &'static FormatConfig)> {
     }
 
     None
+}
+
+fn on_lua_failed(err: &str, log_v: impl Fn(&str)) {
+    log_v(&format!("Lua script execution failed:\n{}", err));
 }
