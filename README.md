@@ -154,7 +154,7 @@ set(exec(
 
 ```
 echo '[1,2,3]' | dop \
-  --on-start 'result = {counter: 0}' \
+  --on-start 'result = {counter = 0}' \
   -e 'result.counter = result.counter + 1' \
   -p result
 
