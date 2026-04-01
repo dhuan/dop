@@ -160,10 +160,21 @@ pub fn set(ctx: Rc<LibContext>) -> impl Fn(&Lua, MultiValue) -> LuaResult<()> {
         let mut value_mut = ctx.value.borrow_mut();
 
         if let None = key {
-            let value_to_change = value_mut.change(&ctx.key, force).unwrap();
+            let value_to_change = match value_mut.change(&ctx.key, force) {
+                Some(value) => value,
+                None => {
+                    return Ok(());
+                }
+            };
+
             *value_to_change = crate::json::to_value(&value.clone()).unwrap();
         } else if let Some(key) = key {
-            let key = path::decode(key).unwrap();
+            let key = match path::decode(key) {
+                Some(key) => key,
+                None => {
+                    return Ok(());
+                }
+            };
 
             if let Some(value_to_change) = value_mut.change(&key, force) {
                 *value_to_change = crate::json::to_value(&value.clone()).unwrap();
