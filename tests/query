@@ -170,3 +170,19 @@ foo:
 # EXPECT
 
 {"hello":"world"}
+
+---
+
+# Query fails with invalid query string
+
+# OPTIONS
+
+-q a[
+
+# INPUT
+
+{"a":1}
+
+# EXPECT_ERROR
+
+Invalid query/path.

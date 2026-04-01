@@ -57,7 +57,7 @@ TEST_INPUT=$(mktemp)
 
 export PATH=${PATH}:$(pwd)/target/debug
 
-find tests -type f | sort | while read -r TEST_FILE
+find tests -type f | grep -v \.sh$ | sort | while read -r TEST_FILE
 do
     CURRENT_BLOCK="0"
 
@@ -76,8 +76,14 @@ do
         TEST_SCRIPT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "SCRIPT")"
         TEST_SCRIPT_ONCE="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "SCRIPT_ONCE")"
         TEST_OPTIONS="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "OPTIONS")"
-        TEST_EXPECT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "EXPECT")"
         TEST_NAME="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_nth_section_name 0)"
+        TEST_EXPECT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "EXPECT")"
+        TEST_EXPECTS_ERROR="false"
+        if [ -z "${TEST_EXPECT}" ]
+        then
+            TEST_EXPECT="$(cat $TEST_FILE | get_block ${CURRENT_BLOCK} | get_section "EXPECT_ERROR")"
+            TEST_EXPECTS_ERROR="true"
+        fi
 
         if [ -z "${TEST_NAME}" ]
         then
@@ -93,14 +99,24 @@ do
             continue
         fi
 
+        set +e
         if [ -n "${TEST_SCRIPT_ONCE}" ]
         then
-            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} -E "${TEST_SCRIPT_ONCE}" < $TEST_INPUT)"
+            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} -E "${TEST_SCRIPT_ONCE}" < $TEST_INPUT 2>&1)"
         elif [ -z "${TEST_SCRIPT}" ]
         then
-            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} < $TEST_INPUT)"
+            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} < $TEST_INPUT 2>&1)"
         else
-            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} -e "${TEST_SCRIPT}" < $TEST_INPUT)"
+            TEST_RESULT="$(./target/debug/dop ${TEST_OPTIONS} -e "${TEST_SCRIPT}" < $TEST_INPUT 2>&1)"
+        fi
+        TEST_RESULT_STATUS_CODE="${?}"
+        set -e
+
+        if [ "${TEST_EXPECTS_ERROR}" = "true" ] && [ "${TEST_RESULT_STATUS_CODE}" = "0" ]
+        then
+            printf "✖ %s\nExpected status code to be non-zero.\n" "${TEST_NAME}"
+
+            exit 1
         fi
 
         if [ "${TEST_RESULT}" = "${TEST_EXPECT}" ]

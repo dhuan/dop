@@ -239,7 +239,10 @@ fn main() {
     let mut value = value.borrow_mut();
 
     if let Some(query) = cli.args.query {
-        if let Some(value) = value.change(&crate::path::decode(&query).unwrap(), false) {
+        if let Some(value) = value.change(
+            &crate::path::decode(&query).unwrap_or_else(fail("Invalid query/path.")),
+            false,
+        ) {
             println!(
                 "{}",
                 value.to_string(
@@ -273,4 +276,13 @@ fn guess_value(stdin: &str) -> Option<(Value, &'static FormatConfig)> {
 
 fn on_lua_failed(err: &str, log_v: impl Fn(&str)) {
     log_v(&format!("Lua script execution failed:\n{}", err));
+}
+
+fn fatal(msg: &'static str) -> ! {
+    eprintln!("{}", msg);
+    std::process::exit(1);
+}
+
+fn fail<T>(msg: &'static str) -> impl FnOnce() -> T {
+    move || fatal(msg)
 }
