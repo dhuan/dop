@@ -34,7 +34,7 @@ impl Value {
 
     pub fn get(&self, path: &[PathEntry]) -> Option<&Value> {
         if path.is_empty() {
-            return None;
+            return Some(self);
         }
 
         if path.len() == 1 {
@@ -145,6 +145,10 @@ impl Value {
     }
 
     pub fn change<'a>(&'a mut self, path: &[PathEntry], force: bool) -> Option<&'a mut Value> {
+        if path.is_empty() {
+            return Some(self);
+        }
+
         let path = match self.has(path) {
             true => path,
             false => match self.add(path, &Value::Null, force) {
@@ -156,11 +160,6 @@ impl Value {
         };
 
         let mut current = self;
-
-        if path.is_empty() {
-            return Some(current);
-        }
-
         for visit_item in path {
             current = match (current, visit_item) {
                 (Value::List(list), PathEntry::Index(index)) => list.get_mut(*index)?,
@@ -292,8 +291,12 @@ impl Value {
     {
         let mut value = self.clone();
         let mut visit: VecDeque<Vec<PathEntry>> = VecDeque::new();
-        for key in get_keys(&value).unwrap_or(vec![]) {
-            visit.push_back(vec![key]);
+        if let Some(keys) = get_keys(&value) {
+            for key in keys {
+                visit.push_back(vec![key]);
+            }
+        } else {
+            visit.push_back(vec![]);
         }
 
         while let Some(path_base) = visit.pop_front() {
@@ -434,6 +437,29 @@ mod tests {
             });
 
         assert_eq!(value_new, Value::String("changed!".to_string()));
+    }
+
+    #[test]
+    fn test_traverse_change_scalar_root() {
+        let value_new = from_json("1").traverse(|_path, _key_encoded, value, _value_all| {
+            if let Value::Int(num) = value {
+                return TraverseAction::Change(Value::Int(num * 2));
+            }
+
+            TraverseAction::Leave
+        });
+
+        assert_eq!(value_new, Value::Int(2));
+    }
+
+    #[test]
+    fn test_change_root_value() {
+        let mut value = Value::Int(1);
+
+        let value2 = value.change(&vec![], false).unwrap();
+        *value2 = Value::Int(2);
+
+        assert_eq!(value, Value::Int(2));
     }
 
     #[test]

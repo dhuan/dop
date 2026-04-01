@@ -36,7 +36,8 @@ fn get_internal(
         return Err(Some("Failed to parse.".to_string()));
     }
 
-    let key = match path::decode(&key.ok_or(None)?) {
+    let key_raw = key.ok_or(None)?;
+    let key = match path::decode(&key_raw) {
         Some(key) => key,
         None => {
             return Err(None);
@@ -156,6 +157,10 @@ pub fn set(ctx: Rc<LibContext>) -> impl Fn(&Lua, MultiValue) -> LuaResult<()> {
                 }
             }
         };
+
+        if ctx.script_once_mode && key.is_none() {
+            return Ok(());
+        }
 
         let mut value_mut = ctx.value.borrow_mut();
 

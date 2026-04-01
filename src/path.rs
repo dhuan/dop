@@ -6,6 +6,10 @@ pub enum PathEntry {
 }
 
 pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
+    if path.is_empty() {
+        return Some(vec![]);
+    }
+
     let mut result = vec![];
     let mut current = String::new();
     let mut is_parsing_index = false;
@@ -142,6 +146,8 @@ mod tests {
 
     #[test]
     fn test_decode_valid_cases() {
+        assert_eq!(decode(""), Some(vec![]),);
+
         assert_eq!(
             decode("foo.bar"),
             Some(vec![

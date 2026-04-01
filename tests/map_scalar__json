@@ -1,0 +1,13 @@
+# Change scalar root
+
+# INPUT
+
+1
+
+# SCRIPT
+
+set(VALUE * 2)
+
+# EXPECT
+
+2

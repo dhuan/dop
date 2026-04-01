@@ -175,11 +175,11 @@ fn main() {
         let mut value = value.borrow_mut();
 
         *value = value.traverse(|key, key_encoded, _value, value_all| {
-            let field_name = match key.last().unwrap() {
-                crate::path::PathEntry::Field(field_name) => field_name,
-                crate::path::PathEntry::Index(index) => &format!("{}", index),
+            let field_name = key.last().map(|entry| match entry {
+                crate::path::PathEntry::Field(field_name) => field_name.to_owned(),
+                crate::path::PathEntry::Index(index) => format!("{}", index),
                 _ => panic!("Not accepted!"),
-            };
+            });
 
             log_v(&format!("Processing key '{}'.", key_encoded));
 
@@ -203,7 +203,7 @@ fn main() {
                 if let Err(err) = lua::handle(
                     &script,
                     value.clone(),
-                    Some(field_name),
+                    field_name.as_deref(),
                     key,
                     key_encoded,
                     false,
