@@ -150,6 +150,18 @@ set(exec(
 # {"domains":{"google.com":"142.251.39.238","microsoft.com":"20.236.44.162"}}
 ```
 
+### Overwriting output
+
+```
+echo '[1,2,3]' | dop \
+  --on-start 'result = {counter: 0}' \
+  -e 'result.counter = result.counter + 1' \
+  -p result
+
+# Prints out:
+# {"counter": 3}
+```
+
 ## Options Reference
 
 ```
