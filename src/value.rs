@@ -245,7 +245,7 @@ impl Value {
 
         match (parent, key) {
             (Value::List(list), PathEntry::Index(index)) => {
-                if *index > (list.len() - 1) {
+                if list.len() == 0 || *index > (list.len() - 1) {
                     return;
                 }
 

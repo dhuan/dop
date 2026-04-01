@@ -12,3 +12,19 @@ unset("[1]")
 # EXPECT
 
 [1,3]
+
+---
+
+# unset: trying to remove out-of-range array elements does not crash + with empty array root
+
+# INPUT
+
+[]
+
+# SCRIPT_ONCE
+
+unset("[0]")
+
+# EXPECT
+
+[]
