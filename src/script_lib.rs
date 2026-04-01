@@ -106,8 +106,11 @@ pub fn exec(ctx: Rc<LibContext>) -> impl Fn(&Lua, String) -> LuaResult<Option<Lu
 pub fn unset(ctx: Rc<LibContext>) -> impl Fn(&Lua, Option<String>) -> LuaResult<Option<LuaValue>> {
     move |_, delete_key| {
         let delete_key = match delete_key {
-            None => &ctx.key,
-            Some(key) => &path::decode(&key).unwrap(),
+            None => ctx.clone().key.clone(),
+            Some(key) => match path::decode(&key) {
+                Some(key) => key,
+                None => return Ok(None),
+            },
         };
 
         ctx.value.borrow_mut().remove(&delete_key);

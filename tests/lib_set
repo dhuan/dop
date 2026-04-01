@@ -1,0 +1,13 @@
+# set: with invalid path does not crash
+
+# INPUT
+
+{"foo":[]}
+
+# SCRIPT_ONCE
+
+unset("foo[")
+
+# EXPECT
+
+{"foo":[]}
