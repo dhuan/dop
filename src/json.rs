@@ -85,7 +85,7 @@ pub fn to_value(value: &JsonValue) -> Option<Value> {
         let mut obj: HashMap<Key, Value> = std::collections::HashMap::new();
 
         for (key, value) in value.as_object().unwrap().iter() {
-            obj.insert(to_key(key), to_value(value).unwrap());
+            obj.insert(Key::String(key.to_owned()), to_value(value).unwrap());
         }
 
         return Some(Value::Object(obj));

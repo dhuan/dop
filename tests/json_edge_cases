@@ -1,0 +1,11 @@
+# Keys as numbers shall be processed without error
+
+# INPUT
+
+{"01":"b","1":"a","2":"c"}
+
+# SCRIPT
+
+# EXPECT
+
+{"01":"b","1":"a","2":"c"}
