@@ -60,6 +60,8 @@ struct Args {
     input_format: Option<String>,
     #[arg(short = 'P', long)]
     pretty: bool,
+    #[arg(short = 'p', long = "print-var")]
+    print_var_instead: Option<String>,
     #[arg(short, long)]
     verbose: bool,
 }
@@ -248,6 +250,23 @@ fn main() {
     ));
 
     let mut value = value.borrow_mut();
+
+    if let Some(var_name) = cli.args.print_var_instead {
+        let var = lua::get_var(lua_instance.clone(), &var_name);
+
+        let result = output_format
+            .format
+            .from_str(&serde_json::to_string(&var).unwrap())
+            .unwrap()
+            .to_string(
+                |value, pretty| output_format.format.to_str(value, pretty),
+                false,
+            );
+
+        println!("{}", result);
+
+        return;
+    }
 
     if let Some(query) = cli.args.query {
         if let Some(value) = value.change(

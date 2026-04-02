@@ -92,3 +92,9 @@ fn to_lua_value(lua: &Lua, value: &Value) -> LuaValue {
     lua.to_value(&crate::json::to_json_value(value).unwrap())
         .unwrap()
 }
+
+pub fn get_var(lua: Rc<RefCell<Lua>>, var_name: &str) -> Option<serde_json::Value> {
+    lua.borrow()
+        .from_value(lua.borrow().globals().get(var_name).unwrap())
+        .unwrap()
+}
