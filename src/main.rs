@@ -169,6 +169,8 @@ fn main() {
         }
     });
 
+    let lua_instance = Rc::new(RefCell::new(lua::init()));
+
     if let Some(script) = script.clone()
         && !script_once_mode
     {
@@ -201,6 +203,7 @@ fn main() {
                 let value = Rc::new(RefCell::new(value_all.clone()));
 
                 if let Err(err) = lua::handle(
+                    lua_instance.clone(),
                     &script,
                     value.clone(),
                     field_name.as_deref(),
@@ -225,8 +228,16 @@ fn main() {
     } else if let Some(script) = script
         && script_once_mode
     {
-        if let Err(err) = lua::handle(&script, value.clone(), None, &[], "", true, Box::new(log_v))
-        {
+        if let Err(err) = lua::handle(
+            lua_instance.clone(),
+            &script,
+            value.clone(),
+            None,
+            &[],
+            "",
+            true,
+            Box::new(log_v),
+        ) {
             on_lua_failed(&err, log_v);
         }
     }
