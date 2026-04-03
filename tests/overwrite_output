@@ -1,0 +1,17 @@
+# overwrite output
+
+# INPUT
+
+[1,2,3]
+
+# OPTIONS
+
+-b result={counter=0} -p result
+
+# SCRIPT
+
+result.counter = result.counter + 1
+
+# EXPECT
+
+{"counter":3}
