@@ -196,6 +196,17 @@ echo '[1,2,3]' | dop \
        # Prints out:
        # 6
 
+-p <VAR NAME>, --print-var <VAR NAME>
+      Emits a variable <VAR NAME> as the final output. If the variable is an
+      object, it will be formatted according to either the original input or
+      based on --output-format.
+
+      $ printf '[1,2,3]' | dop -b 'result = {sum = 0}' \
+        -e 'result.sum = result.sum + VALUE' \
+        --print-var result
+       # Prints out:
+       # {"sum":6}
+
 -k <VALUE>, --key-filter <VALUE>
        Search for keys based on given regular expression. The script will only
        be executed for fields which key match the search.
