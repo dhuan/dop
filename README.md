@@ -235,7 +235,10 @@ echo '[1,2,3]' | dop \
        messages from your script, which will only be visible if -v is used.
 ```
 
-## Commands Reference
+## Script library reference
+
+Scripts are equipped with a set of utility functions for operating on input
+data. The complete list of available functions is provided below.
 
 ```
 set(<VALUE>)
