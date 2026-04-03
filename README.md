@@ -187,6 +187,15 @@ echo '[1,2,3]' | dop \
        set("data.some_list[5]", 123)
        ' < ...
 
+-b <SCRIPT>, --begin <SCRIPT>
+       Executes a given Lua script before data processing begins. At this point
+       you can define variables that will be carried over across execution
+       during data processing. This option is analogous with AWK's "BEGIN{}".
+
+       $ printf '[1,2,3]' | dop -b 'sum = 0' -e 'sum = sum + VALUE' --print-var sum
+       # Prints out:
+       # 6
+
 -k <VALUE>, --key-filter <VALUE>
        Search for keys based on given regular expression. The script will only
        be executed for fields which key match the search.
