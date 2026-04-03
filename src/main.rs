@@ -62,6 +62,8 @@ struct Args {
     pretty: bool,
     #[arg(short = 'p', long = "print-var")]
     print_var_instead: Option<String>,
+    #[arg(long = "on-start")]
+    on_start: Option<String>,
     #[arg(short, long)]
     verbose: bool,
 }
@@ -172,6 +174,14 @@ fn main() {
     });
 
     let lua_instance = Rc::new(RefCell::new(lua::init()));
+
+    if let Some(on_start) = cli.args.on_start {
+        if let Err(err) = lua::exec(lua_instance.clone(), &on_start) {
+            on_lua_failed(&err, log_v);
+
+            return;
+        }
+    }
 
     if let Some(script) = script.clone()
         && !script_once_mode

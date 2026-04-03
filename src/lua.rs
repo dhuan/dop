@@ -98,3 +98,12 @@ pub fn get_var(lua: Rc<RefCell<Lua>>, var_name: &str) -> Option<serde_json::Valu
         .from_value(lua.borrow().globals().get(var_name).unwrap())
         .unwrap()
 }
+
+pub fn exec(lua: Rc<RefCell<Lua>>, script: &str) -> Result<(), String> {
+    lua.borrow()
+        .load(script)
+        .exec()
+        .map_err(|err| err.to_string())?;
+
+    Ok(())
+}
