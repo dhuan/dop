@@ -262,7 +262,11 @@ fn main() {
     let mut value = value.borrow_mut();
 
     if let Some(var_name) = cli.args.print_var_instead {
-        let var = lua::get_var(lua_instance.clone(), &var_name);
+        let var = if let Some(var) = lua::get_var(lua_instance.clone(), &var_name) {
+            var
+        } else {
+            return;
+        };
 
         let result = output_format
             .format
