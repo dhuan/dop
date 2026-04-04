@@ -34,4 +34,4 @@ result.counter = result.counter + 1
 
 # EXPECT
 
-{"counter":3}
+counter = 3

@@ -268,16 +268,11 @@ fn main() {
             return;
         };
 
-        let result = output_format
-            .format
+        let value = crate::json::Json {}
             .from_str(&serde_json::to_string(&var).unwrap())
-            .unwrap()
-            .to_string(
-                |value, pretty| output_format.format.to_str(value, pretty),
-                false,
-            );
+            .unwrap();
 
-        println!("{}", result);
+        println!("{}", output_format.format.to_str(&value, false).unwrap());
 
         return;
     }
