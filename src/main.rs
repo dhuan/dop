@@ -272,7 +272,13 @@ fn main() {
             .from_str(&serde_json::to_string(&var).unwrap())
             .unwrap();
 
-        println!("{}", output_format.format.to_str(&value, false).unwrap());
+        println!(
+            "{}",
+            output_format
+                .format
+                .to_str(&value, cli.args.pretty)
+                .unwrap()
+        );
 
         return;
     }
