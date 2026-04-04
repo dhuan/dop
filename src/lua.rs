@@ -5,12 +5,14 @@ use mlua::{LuaSerdeExt, prelude::*};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-fn add_global_func<F, A, R>(lua: Rc<Lua>, func_name: &str, func: F) -> Result<(), String>
+fn add_global_func<F, A, R>(lua: Rc<RefCell<Lua>>, func_name: &str, func: F) -> Result<(), String>
 where
     F: FnMut(&Lua, A) -> mlua::Result<R> + mlua::MaybeSend + 'static,
     A: FromLuaMulti,
     R: IntoLuaMulti,
 {
+    let lua = lua.borrow();
+
     lua.globals()
         .set(
             func_name,
@@ -23,14 +25,19 @@ where
 }
 
 pub struct LibContext {
-    pub lua: Rc<Lua>,
+    pub lua: Rc<RefCell<Lua>>,
     pub value: Rc<RefCell<Value>>,
     pub key: Vec<PathEntry>,
     pub key_encoded: String,
     pub script_once_mode: bool,
 }
 
+pub fn init() -> Lua {
+    Lua::new()
+}
+
 pub fn handle(
+    lua: Rc<RefCell<Lua>>,
     script: &str,
     value: Rc<RefCell<Value>>,
     field_name: Option<&str>,
@@ -39,7 +46,6 @@ pub fn handle(
     script_once_mode: bool,
     log: Box<impl Fn(&str) + 'static>,
 ) -> Result<(), String> {
-    let lua = Rc::new(Lua::new());
     let lib_ctx = Rc::new(LibContext {
         lua: lua.clone(),
         value: value.clone(),
@@ -57,6 +63,8 @@ pub fn handle(
     add_global_func(lua.clone(), "unset", script_lib::unset(lib_ctx.clone()))?;
     add_global_func(lua.clone(), "get", script_lib::get(lib_ctx.clone()))?;
     add_global_func(lua.clone(), "exec", script_lib::exec(lib_ctx.clone()))?;
+
+    let lua = lua.borrow();
 
     lua.globals()
         .set("FIELD_NAME", field_name.unwrap_or_default())
@@ -83,4 +91,19 @@ pub fn handle(
 fn to_lua_value(lua: &Lua, value: &Value) -> LuaValue {
     lua.to_value(&crate::json::to_json_value(value).unwrap())
         .unwrap()
+}
+
+pub fn get_var(lua: Rc<RefCell<Lua>>, var_name: &str) -> Option<serde_json::Value> {
+    lua.borrow()
+        .from_value(lua.borrow().globals().get(var_name).unwrap())
+        .unwrap()
+}
+
+pub fn exec(lua: Rc<RefCell<Lua>>, script: &str) -> Result<(), String> {
+    lua.borrow()
+        .load(script)
+        .exec()
+        .map_err(|err| err.to_string())?;
+
+    Ok(())
 }

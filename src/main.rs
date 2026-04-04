@@ -60,6 +60,10 @@ struct Args {
     input_format: Option<String>,
     #[arg(short = 'P', long)]
     pretty: bool,
+    #[arg(short = 'p', long = "print-var")]
+    print_var_instead: Option<String>,
+    #[arg(short = 'b', long = "begin")]
+    on_begin: Option<String>,
     #[arg(short, long)]
     verbose: bool,
 }
@@ -169,6 +173,16 @@ fn main() {
         }
     });
 
+    let lua_instance = Rc::new(RefCell::new(lua::init()));
+
+    if let Some(on_begin) = cli.args.on_begin {
+        if let Err(err) = lua::exec(lua_instance.clone(), &on_begin) {
+            on_lua_failed(&err, log_v);
+
+            return;
+        }
+    }
+
     if let Some(script) = script.clone()
         && !script_once_mode
     {
@@ -201,6 +215,7 @@ fn main() {
                 let value = Rc::new(RefCell::new(value_all.clone()));
 
                 if let Err(err) = lua::handle(
+                    lua_instance.clone(),
                     &script,
                     value.clone(),
                     field_name.as_deref(),
@@ -225,8 +240,16 @@ fn main() {
     } else if let Some(script) = script
         && script_once_mode
     {
-        if let Err(err) = lua::handle(&script, value.clone(), None, &[], "", true, Box::new(log_v))
-        {
+        if let Err(err) = lua::handle(
+            lua_instance.clone(),
+            &script,
+            value.clone(),
+            None,
+            &[],
+            "",
+            true,
+            Box::new(log_v),
+        ) {
             on_lua_failed(&err, log_v);
         }
     }
@@ -237,6 +260,28 @@ fn main() {
     ));
 
     let mut value = value.borrow_mut();
+
+    if let Some(var_name) = cli.args.print_var_instead {
+        let var = if let Some(var) = lua::get_var(lua_instance.clone(), &var_name) {
+            var
+        } else {
+            return;
+        };
+
+        let value = crate::json::Json {}
+            .from_str(&serde_json::to_string(&var).unwrap())
+            .unwrap();
+
+        println!(
+            "{}",
+            output_format
+                .format
+                .to_str(&value, cli.args.pretty)
+                .unwrap()
+        );
+
+        return;
+    }
 
     if let Some(query) = cli.args.query {
         if let Some(value) = value.change(

@@ -1,0 +1,59 @@
+# overwrite output
+
+# INPUT
+
+[1,2,3]
+
+# OPTIONS
+
+-b result={counter=0} -p result
+
+# SCRIPT
+
+result.counter = result.counter + 1
+
+# EXPECT
+
+{"counter":3}
+
+---
+
+# overwrite output + convert format
+
+# INPUT
+
+[1,2,3]
+
+# OPTIONS
+
+-b result={counter=0} -p result -o toml
+
+# SCRIPT
+
+result.counter = result.counter + 1
+
+# EXPECT
+
+counter = 3
+
+---
+
+# overwrite output: respect pretty option
+
+# INPUT
+
+[1,2,3]
+
+# OPTIONS
+
+-b result={counter=0} -p result -o json --pretty
+
+# SCRIPT
+
+result.counter = result.counter + 1
+
+# EXPECT
+
+{
+  "counter": 3
+}

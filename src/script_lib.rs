@@ -67,6 +67,7 @@ pub fn get(ctx: Rc<LibContext>) -> impl Fn(&Lua, Option<String>) -> LuaResult<Op
         if let Ok(Some(value)) = get_internal(ctx.clone(), Some(&args)) {
             return Ok(Some(
                 ctx.lua
+                    .borrow()
                     .to_value(&crate::json::to_json_value(&value).unwrap())
                     .unwrap(),
             ));
@@ -85,6 +86,7 @@ pub fn exec(ctx: Rc<LibContext>) -> impl Fn(&Lua, String) -> LuaResult<Option<Lu
 
         let output = ctx
             .lua
+            .borrow()
             .to_value(
                 &String::from_utf8(command_result.stdout)
                     .unwrap()

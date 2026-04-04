@@ -1,0 +1,17 @@
+# begin
+
+# INPUT
+
+[1,2,3]
+
+# OPTIONS
+
+-b base_value=10
+
+# SCRIPT
+
+set(VALUE + base_value)
+
+# EXPECT
+
+[11,12,13]

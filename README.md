@@ -150,6 +150,18 @@ set(exec(
 # {"domains":{"google.com":"142.251.39.238","microsoft.com":"20.236.44.162"}}
 ```
 
+### Overwriting output
+
+```
+echo '[1,2,3]' | dop \
+  --begin 'result = {counter = 0}' \
+  -e 'result.counter = result.counter + 1' \
+  -p result
+
+# Prints out:
+# {"counter": 3}
+```
+
 ## Options Reference
 
 ```
@@ -174,6 +186,26 @@ set(exec(
        set("foo", "bar")
        set("data.some_list[5]", 123)
        ' < ...
+
+-b <SCRIPT>, --begin <SCRIPT>
+       Executes a given Lua script before data processing begins. At this point
+       you can define variables that will be carried over across execution
+       during data processing. This option is analogous with AWK's "BEGIN{}".
+
+       $ printf '[1,2,3]' | dop -b 'sum = 0' -e 'sum = sum + VALUE' --print-var sum
+       # Prints out:
+       # 6
+
+-p <VAR NAME>, --print-var <VAR NAME>
+      Emits a variable <VAR NAME> as the final output. If the variable is an
+      object, it will be formatted according to either the original input or
+      based on --output-format.
+
+      $ printf '[1,2,3]' | dop -b 'result = {sum = 0}' \
+        -e 'result.sum = result.sum + VALUE' \
+        --print-var result
+       # Prints out:
+       # {"sum":6}
 
 -k <VALUE>, --key-filter <VALUE>
        Search for keys based on given regular expression. The script will only
@@ -223,7 +255,10 @@ set(exec(
        messages from your script, which will only be visible if -v is used.
 ```
 
-## Commands Reference
+## Script library reference
+
+Scripts are equipped with a set of utility functions for operating on input
+data. The complete list of available functions is provided below.
 
 ```
 set(<VALUE>)
