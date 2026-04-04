@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased yet
+## v0.2.0
 
 * ADDED
   * --begin: allows defining Lua variables before processing starts
