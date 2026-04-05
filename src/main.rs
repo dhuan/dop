@@ -272,13 +272,16 @@ fn main() {
             .from_str(&serde_json::to_string(&var).unwrap())
             .unwrap();
 
-        println!(
-            "{}",
-            output_format
-                .format
-                .to_str(&value, cli.args.pretty)
-                .unwrap()
-        );
+        let value_str = output_format
+            .format
+            .to_str(&value, cli.args.pretty)
+            .unwrap_or_else(|err| {
+                handle_failed_to_stringify_value(err);
+
+                "".to_string()
+            });
+
+        println!("{}", value_str);
 
         return;
     }
@@ -291,7 +294,7 @@ fn main() {
             println!(
                 "{}",
                 value.to_string(
-                    |value, pretty| output_format.format.to_str(value, pretty),
+                    |value, pretty| output_format.format.to_str(value, pretty).ok(),
                     cli.args.pretty
                 )
             );
@@ -323,11 +326,17 @@ fn on_lua_failed(err: &str, log_v: impl Fn(&str)) {
     log_v(&format!("Lua script execution failed:\n{}", err));
 }
 
-fn fatal(msg: &'static str) -> ! {
+fn fatal(msg: &str) -> ! {
     eprintln!("{}", msg);
     std::process::exit(1);
 }
 
 fn fail<T>(msg: &'static str) -> impl FnOnce() -> T {
     move || fatal(msg)
+}
+
+fn handle_failed_to_stringify_value(err: ToStrError) -> () {
+    if let ToStrError::UnsupportedType(path) = err {
+        fatal(&format!("Not supported: {}", path));
+    }
 }

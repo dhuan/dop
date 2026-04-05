@@ -1,3 +1,4 @@
+use crate::types::*;
 use std::collections::HashMap;
 use std::hash::Hash;
 
@@ -14,4 +15,8 @@ where
     V: Clone,
 {
     list.iter().cloned().collect()
+}
+
+pub fn to_parse_error(err: impl std::string::ToString) -> ToStrError {
+    ToStrError::ParseError(err.to_string())
 }

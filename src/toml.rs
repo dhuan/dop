@@ -1,4 +1,5 @@
-use crate::types::DataFormat;
+use crate::common::*;
+use crate::types::{DataFormat, ToStrError};
 use crate::value::*;
 use std::collections::HashMap;
 use toml::Value as TomlValue;
@@ -9,8 +10,8 @@ impl DataFormat for Toml {
     fn from_str(&self, s: &str) -> Option<Value> {
         to_value(&toml::from_str(s).ok()?)
     }
-    fn to_str(&self, value: &Value, _: bool) -> Option<String> {
-        toml::to_string(&to_toml_value(value).unwrap()).ok()
+    fn to_str(&self, value: &Value, _: bool) -> Result<String, ToStrError> {
+        Ok(toml::to_string(&to_toml_value(value).unwrap()).map_err(to_parse_error)?)
     }
 }
 

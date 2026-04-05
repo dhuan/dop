@@ -1,4 +1,5 @@
-use crate::types::DataFormat;
+use crate::common::*;
+use crate::types::{DataFormat, ToStrError};
 use crate::value::*;
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
@@ -9,12 +10,20 @@ impl DataFormat for Json {
     fn from_str(&self, s: &str) -> Option<Value> {
         to_value(&serde_json::from_str::<JsonValue>(s).ok()?)
     }
-    fn to_str(&self, value: &Value, pretty: bool) -> Option<String> {
+    fn to_str(&self, value: &Value, pretty: bool) -> Result<String, ToStrError> {
         if pretty {
-            return serde_json::to_string_pretty(&to_json_value(value)?).ok();
+            return serde_json::to_string_pretty(&to_json_value(value).ok_or(
+                ToStrError::ParseError("Failed to convert to JSON value".to_string()),
+            )?)
+            .map_err(to_parse_error);
         }
 
-        Some(format!("{}", to_json_value(value)?))
+        Ok(format!(
+            "{}",
+            to_json_value(value).ok_or(ToStrError::ParseError(
+                "Failed to convert to JSON value".to_string()
+            ))?
+        ))
     }
 }
 

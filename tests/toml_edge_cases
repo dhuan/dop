@@ -1,0 +1,15 @@
+# fails when trying to convert NULL which is not supported by TOML
+
+# OPTIONS
+
+-o toml
+
+# INPUT
+
+{"foo":null}
+
+# SCRIPT
+
+# EXPECT_ERROR
+
+TOML does not support NULL.
