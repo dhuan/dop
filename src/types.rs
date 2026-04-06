@@ -1,4 +1,4 @@
-use crate::value::*;
+use crate::{path::PathEntry, value::*};
 
 pub trait DataFormat {
     fn from_str(&self, s: &str) -> Option<Value>;
@@ -9,5 +9,5 @@ pub trait DataFormat {
 pub enum ToStrError {
     #[allow(unused)]
     ParseError(String),
-    UnsupportedType(String),
+    UnsupportedType((String, Vec<PathEntry>)),
 }

@@ -276,7 +276,7 @@ fn main() {
             .format
             .to_str(&value, cli.args.pretty)
             .unwrap_or_else(|err| {
-                handle_failed_to_stringify_value(err);
+                handle_failed_to_stringify_value(err, output_format.name);
 
                 "".to_string()
             });
@@ -309,7 +309,7 @@ fn main() {
             .format
             .to_str(&value, cli.args.pretty)
             .unwrap_or_else(|err| {
-                handle_failed_to_stringify_value(err);
+                handle_failed_to_stringify_value(err, output_format.name);
 
                 "".to_string()
             })
@@ -339,8 +339,13 @@ fn fail<T>(msg: &'static str) -> impl FnOnce() -> T {
     move || fatal(msg)
 }
 
-fn handle_failed_to_stringify_value(err: ToStrError) -> () {
-    if let ToStrError::UnsupportedType(path) = err {
-        fatal(&format!("Not supported: {}", path));
+fn handle_failed_to_stringify_value(err: ToStrError, format_name: &str) -> () {
+    if let ToStrError::UnsupportedType((type_name, path)) = err {
+        fatal(&format!(
+            "Type not supported by {}: {} = {}",
+            format_name.to_uppercase(),
+            crate::path::encode(&path),
+            type_name,
+        ));
     }
 }

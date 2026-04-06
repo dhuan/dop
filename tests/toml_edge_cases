@@ -6,10 +6,10 @@
 
 # INPUT
 
-{"foo":null}
+{"some_valid_value":123,"a":{"b":{"c":null}}}
 
 # SCRIPT
 
 # EXPECT_ERROR
 
-TOML does not support NULL.
+Type not supported by TOML: a.b.c = null

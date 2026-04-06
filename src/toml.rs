@@ -1,4 +1,5 @@
 use crate::common::*;
+use crate::path::*;
 use crate::types::{DataFormat, ToStrError};
 use crate::value::*;
 use std::collections::HashMap;
@@ -13,8 +14,8 @@ impl DataFormat for Toml {
     fn to_str(&self, value: &Value, _: bool) -> Result<String, ToStrError> {
         Ok(
             toml::to_string(&to_toml_value(value, &[]).map_err(|err| match err {
-                ToTomlValueError::UnsupportedType(value) => {
-                    ToStrError::UnsupportedType(value.type_encoded())
+                ToTomlValueError::UnsupportedType((value, path)) => {
+                    ToStrError::UnsupportedType((value.type_encoded(), path))
                 }
             })?)
             .map_err(to_parse_error)?,
@@ -65,10 +66,10 @@ fn to_value(value: &TomlValue) -> Option<Value> {
 
 #[derive(Debug)]
 enum ToTomlValueError {
-    UnsupportedType(Value),
+    UnsupportedType((Value, Vec<PathEntry>)),
 }
 
-fn to_toml_value(value: &Value, path: &[String]) -> Result<TomlValue, ToTomlValueError> {
+fn to_toml_value(value: &Value, path: &[PathEntry]) -> Result<TomlValue, ToTomlValueError> {
     match value {
         Value::String(value) => Ok(TomlValue::from(value.to_owned())),
         Value::Int(value) => Ok(TomlValue::from(*value)),
@@ -80,7 +81,7 @@ fn to_toml_value(value: &Value, path: &[String]) -> Result<TomlValue, ToTomlValu
                 .map(|(i, value)| {
                     to_toml_value(value, &{
                         let mut path_new = path.to_owned();
-                        path_new.push(format!("[{}]", i));
+                        path_new.push(PathEntry::Index(i));
 
                         path_new
                     })
@@ -92,23 +93,37 @@ fn to_toml_value(value: &Value, path: &[String]) -> Result<TomlValue, ToTomlValu
 
             for (key, value) in value {
                 if let Value::Null = value {
-                    return Err(ToTomlValueError::UnsupportedType(Value::Null));
+                    return Err(ToTomlValueError::UnsupportedType((Value::Null, {
+                        let mut path_new = path.to_owned();
+                        path_new.push(PathEntry::Field(if let Key::String(s) = key {
+                            s.to_owned()
+                        } else {
+                            panic!("Failed to parse key");
+                        }));
+
+                        path_new
+                    })));
                 }
 
                 obj.insert(
                     key_to_string(key),
                     to_toml_value(value, &{
                         let mut path_new = path.to_owned();
-                        path_new.push(key_to_string(key));
+                        path_new.push(match key {
+                            Key::String(s) => PathEntry::Field(s.to_owned()),
+                            Key::Int(i) => PathEntry::Index((*i).try_into().unwrap()),
+                        });
 
                         path_new
-                    })
-                    .unwrap_or(TomlValue::from("null")),
+                    })?,
                 );
             }
 
             Ok(TomlValue::from(obj))
         }
-        Value::Null => Err(ToTomlValueError::UnsupportedType(Value::Null)),
+        Value::Null => Err(ToTomlValueError::UnsupportedType((
+            Value::Null,
+            path.to_vec(),
+        ))),
     }
 }
