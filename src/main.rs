@@ -308,7 +308,11 @@ fn main() {
         output_format
             .format
             .to_str(&value, cli.args.pretty)
-            .unwrap()
+            .unwrap_or_else(|err| {
+                handle_failed_to_stringify_value(err);
+
+                "".to_string()
+            })
     );
 }
 

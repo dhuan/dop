@@ -11,7 +11,14 @@ impl DataFormat for Toml {
         to_value(&toml::from_str(s).ok()?)
     }
     fn to_str(&self, value: &Value, _: bool) -> Result<String, ToStrError> {
-        Ok(toml::to_string(&to_toml_value(value).unwrap()).map_err(to_parse_error)?)
+        Ok(
+            toml::to_string(&to_toml_value(value, &[]).map_err(|err| match err {
+                ToTomlValueError::UnsupportedType(value) => {
+                    ToStrError::UnsupportedType(value.type_encoded())
+                }
+            })?)
+            .map_err(to_parse_error)?,
+        )
     }
 }
 
@@ -56,29 +63,52 @@ fn to_value(value: &TomlValue) -> Option<Value> {
     None
 }
 
-fn to_toml_value(value: &Value) -> Option<TomlValue> {
+#[derive(Debug)]
+enum ToTomlValueError {
+    UnsupportedType(Value),
+}
+
+fn to_toml_value(value: &Value, path: &[String]) -> Result<TomlValue, ToTomlValueError> {
     match value {
-        Value::String(value) => Some(TomlValue::from(value.to_owned())),
-        Value::Int(value) => Some(TomlValue::from(*value)),
-        Value::Float(value) => Some(TomlValue::from(*value)),
-        Value::Bool(value) => Some(TomlValue::from(*value)),
-        Value::List(list) => Some(TomlValue::Array(
+        Value::String(value) => Ok(TomlValue::from(value.to_owned())),
+        Value::Int(value) => Ok(TomlValue::from(*value)),
+        Value::Float(value) => Ok(TomlValue::from(*value)),
+        Value::Bool(value) => Ok(TomlValue::from(*value)),
+        Value::List(list) => Ok(TomlValue::Array(
             list.iter()
-                .map(|value| to_toml_value(value).unwrap())
-                .collect(),
+                .enumerate()
+                .map(|(i, value)| {
+                    to_toml_value(value, &{
+                        let mut path_new = path.to_owned();
+                        path_new.push(format!("[{}]", i));
+
+                        path_new
+                    })
+                })
+                .collect::<Result<Vec<TomlValue>, ToTomlValueError>>()?,
         )),
         Value::Object(value) => {
             let mut obj = toml::Table::new();
 
             for (key, value) in value {
+                if let Value::Null = value {
+                    return Err(ToTomlValueError::UnsupportedType(Value::Null));
+                }
+
                 obj.insert(
                     key_to_string(key),
-                    to_toml_value(value).unwrap_or(TomlValue::from("null")),
+                    to_toml_value(value, &{
+                        let mut path_new = path.to_owned();
+                        path_new.push(key_to_string(key));
+
+                        path_new
+                    })
+                    .unwrap_or(TomlValue::from("null")),
                 );
             }
 
-            Some(TomlValue::from(obj))
+            Ok(TomlValue::from(obj))
         }
-        Value::Null => Some(TomlValue::String("null".to_string())),
+        Value::Null => Err(ToTomlValueError::UnsupportedType(Value::Null)),
     }
 }
