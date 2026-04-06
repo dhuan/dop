@@ -627,7 +627,7 @@ mod tests {
 
         assert_eq!(
             value.to_string(
-                |value, pretty| crate::json::Json {}.to_str(value, pretty),
+                |value, pretty| crate::json::Json {}.to_str(value, pretty).ok(),
                 false
             ),
             expect,

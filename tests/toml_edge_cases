@@ -1,0 +1,15 @@
+# fails when trying to convert NULL which is not supported by TOML
+
+# OPTIONS
+
+-o toml
+
+# INPUT
+
+{"some_valid_value":123,"a":{"b":{"c":null}}}
+
+# SCRIPT
+
+# EXPECT_ERROR
+
+Type not supported by TOML: a.b.c = null

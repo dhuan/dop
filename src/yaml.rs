@@ -1,4 +1,5 @@
-use crate::types::DataFormat;
+use crate::common::*;
+use crate::types::{DataFormat, ToStrError};
 use crate::value::*;
 use serde_yaml::Value as YamlValue;
 use std::collections::HashMap;
@@ -9,11 +10,13 @@ impl DataFormat for Yaml {
     fn from_str(&self, s: &str) -> Option<Value> {
         to_value(&serde_yaml::from_str::<YamlValue>(s).ok()?)
     }
-    fn to_str(&self, value: &Value, _: bool) -> Option<String> {
-        Some(
-            serde_yaml::to_string(&to_yaml_value(value)?)
-                .ok()?
-                .to_string(),
+    fn to_str(&self, value: &Value, _: bool) -> Result<String, ToStrError> {
+        Ok(
+            serde_yaml::to_string(&to_yaml_value(value).ok_or(ToStrError::ParseError(
+                "Failed to convert to JSON value".to_string(),
+            ))?)
+            .map_err(to_parse_error)?
+            .to_string(),
         )
     }
 }

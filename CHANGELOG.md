@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased yet
+
+* FIXED
+  * Fail gracefully when trying to use unsupported type NULL with TOML
+
 ## v0.2.0
 
 * ADDED
