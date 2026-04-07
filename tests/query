@@ -173,11 +173,27 @@ foo:
 
 ---
 
-# Query fails with invalid query string
+# Query fails with invalid query string: unfinished array opening
 
 # OPTIONS
 
 -q a[
+
+# INPUT
+
+{"a":1}
+
+# EXPECT_ERROR
+
+Invalid query/path.
+
+---
+
+# Query fails with invalid query string: ending with dot
+
+# OPTIONS
+
+-q a.
 
 # INPUT
 

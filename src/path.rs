@@ -73,7 +73,7 @@ pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
         current.push(c);
     }
 
-    if is_parsing_index {
+    if is_parsing_index || last_char == '.' {
         return None;
     }
 
@@ -207,7 +207,15 @@ mod tests {
 
     #[test]
     fn test_decode_invalid_cases() {
-        for invalid_case in vec!["foo[bar]", "foo[1bar2]", "foo.[", "foo.]", "foo.[0]", "a["] {
+        for invalid_case in vec![
+            "foo[bar]",
+            "foo[1bar2]",
+            "foo.[",
+            "foo.]",
+            "foo.[0]",
+            "a[",
+            "a.",
+        ] {
             assert_eq!(decode(invalid_case), None);
         }
     }
