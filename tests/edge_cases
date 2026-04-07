@@ -29,3 +29,19 @@ get("foo[999999999999999999999999999999999999999999999999]")
 # EXPECT_ERROR
 
 Invalid query/path.
+
+---
+
+# Oversized index path should not panic: during set()
+
+# INPUT
+
+{"foo":[1]}
+
+# SCRIPT_ONCE
+
+set("foo[999999999999999999999999999999999999999999]", "ok")
+
+# EXPECT
+
+{"foo":[1]}
