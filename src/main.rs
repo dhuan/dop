@@ -18,6 +18,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 #[derive(Parser)]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 struct Cli {
     #[command(flatten)]
     args: Args,
