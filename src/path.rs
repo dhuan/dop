@@ -50,7 +50,7 @@ pub fn decode(path: &str) -> Option<Vec<PathEntry>> {
             if current.is_empty() {
                 result.push(PathEntry::IndexNew);
             } else {
-                result.push(PathEntry::Index(current.parse::<usize>().unwrap()));
+                result.push(PathEntry::Index(current.parse::<usize>().ok()?));
             }
 
             if i < (path.len() - 1) {

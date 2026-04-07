@@ -1,0 +1,31 @@
+# Oversized index path should not panic: during get()
+
+# INPUT
+
+{"foo":[1]}
+
+# SCRIPT
+
+get("foo[999999999999999999999999999999999999999999999999]")
+
+# EXPECT
+
+{"foo":[1]}
+
+---
+
+# Oversized index path should not panic: during query
+
+# INPUT
+
+{"foo":[1]}
+
+# OPTIONS
+
+-q "foo[999999999999999999999999999999999999999999999999]"
+
+# SCRIPT
+
+# EXPECT_ERROR
+
+Invalid query/path.

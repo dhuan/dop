@@ -3,7 +3,8 @@
 ## Unreleased yet
 
 * FIXED
-  * Fail gracefully when trying to use unsupported type NULL with TOML
+  * Avoid panic when trying to use unsupported type NULL with TOML
+  * Avoid panic when trying to read oversized array index 
 
 ## v0.2.0
 
