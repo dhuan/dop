@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased yet
+## v0.2.1
 
 * FIXED
   * Avoid panic when trying to use unsupported type NULL with TOML
