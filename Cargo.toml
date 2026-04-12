@@ -2,6 +2,15 @@
 name = "dop"
 version = "0.2.2"
 edition = "2024"
+rust-version = "1.90"
+description = "Process, transform and query JSON/YAML/TOML, from the shell."
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/dhuan/dop"
+homepage = "https://github.com/dhuan/dop"
+documentation = "https://docs.rs/dop"
+keywords = ["json", "yaml", "toml", "cli", "lua"]
+categories = ["command-line-utilities", "encoding"]
 
 [dependencies]
 chrono = "0.4.42"
