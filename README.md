@@ -22,6 +22,20 @@ end
 
 *dop* stands for data operations.
 
+## Installation
+
+If you have cargo/rust on your system:
+
+```sh
+$ cargo install dop
+
+...
+
+$ dop --version
+```
+
+Otherwise you can just download the compiled executable from the [releases page](https://github.com/dhuan/dop/releases).
+
 ## Examples
 
 ### Modifying data 
